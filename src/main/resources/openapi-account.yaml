@@ -1,0 +1,487 @@
+openapi: 3.0.3
+info:
+  title: Microservices Social Network - Account Microservice
+  version: 1.0.11
+  description: >-
+    Here are written the API definition for a social network based on
+    microservices technologies. In particular this is the document relative to the account microservice. This is a master thesis project.
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: sergio.stefanizzi@finconsgroup.com
+    name: Sergio Stefanizzi
+servers:
+  - url: http://localhost:8080/api/v1
+    variables: {}
+    description: Development server
+tags:
+  - name: accounts
+    description: All about accounts
+  - name: admins
+    description: All about admins
+paths:
+  /accounts:
+    post:
+      tags:
+        - accounts
+      summary: Account subscription
+      description: Account subscription
+      operationId: addAccount
+      requestBody:
+        description: The new account
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        '201':
+          description:  Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          description: Bad request! Account was not created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: array
+                    example: ['birthdate is mandatory','gender is mandatory']
+                    items:
+                      type: string
+        '409':
+          description: Conflict! Account already created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    minLength: 1
+                    example: Email already exists  
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+    
+  /accounts/{accountId}:
+    put:
+      tags:
+        - accounts
+      summary: Account activation
+      description: Account activation
+      operationId: activateAccountById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          description: Id of the account to be activated
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: crc
+          in: query
+          description: Crc of the account to be activated
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Account has been successfully activated!
+        '400':
+          description: Bad Request! The account has not been activated!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdBadRequest'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+                
+    delete:
+      tags:
+        - accounts
+      summary: Delete an account
+      description: Delete an account
+      operationId: deleteAccountById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          description: Id of the account to be deleted
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Account has been successfully deleted!
+        '400':
+          description: Bad request! Ids are not valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdBadRequest'
+        '401':
+          description: Authentication is required!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthenticated'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+      
+    patch:
+      tags:
+        - accounts
+      summary: Update an account
+      description: Update name, surname, gender or password of an account
+      operationId: updateAccountById
+      security:
+        - bearerAuth: []
+      parameters:
+      - name: accountId
+        in: path
+        description: Id of the account to be updated
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                surname:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                gender:
+                  type: string
+                  enum: [MALE, FEMALE, OTHER]
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 255
+                  writeOnly: true
+      responses:
+        '200':
+          description: Account has been successfully updated!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '401':
+          description: Authentication is required!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthenticated'
+        '404':
+          description: Account Not Found! The account has not been activated!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: array
+                    example: ['Account Not found']
+                    items:
+                      type: string
+                required:
+                - error
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+  
+ 
+  /admins/{accountId}:
+    post:
+      tags:
+        - admins
+      summary: Create an admin, NOT IMPLEMENTED
+      description: Create an admin
+      operationId: addAdminById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          description: Id of the account
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: Admin created!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Admin'
+        '400':
+          description: Bad request! Admin has not been created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdBadRequest'
+        '401':
+          description: Authentication is required!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthenticated'
+        '403':
+          description: Action is forbidden!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '404':
+          description: Account Not Found!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Account Not Found
+        '409':
+          description: Conflict! Admin already created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    minLength: 1
+                    example: Admin already exists 
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+    
+    delete:
+      tags:
+        - admins
+      summary: Remove an admin, blocco account
+      description: Remove an admin
+      operationId: deleteAdminById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          description: Id of the account
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Admin has been successfully removed!
+        '400':
+          description: Bad request! Admin has not been removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdBadRequest'
+        '401':
+          description: Authentication is required!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthenticated'
+        '403':
+          description: Action is forbidden!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '404':
+          description: Admin Not Found!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Admin Not Found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+  
+  /admins/accounts:
+    get:
+      tags:
+        - admins
+      summary: List of all the accounts
+      description: List of all the accounts
+      operationId: findAllAccounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: removedAccount
+          in: query
+          description: Show or not show removed or accounts
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of all accounts found and returned
+          content:
+            appication/json:
+              schema:
+                $ref: '#/components/schemas/AccountList'
+        '401':
+          description: Authentication is required!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unauthenticated'
+        '403':
+          description: Action is forbidden!
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerError'
+            
+components:
+  schemas:
+    
+    Account:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        email:
+          type: string
+          format: email
+          minLength: 3
+          maxLength: 320
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        surname:
+          type: string
+          minLength: 2
+          maxLength: 50
+        birthdate:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 255
+          writeOnly: true
+      required:
+        - email
+        - birthdate
+        - gender
+        - password
+
+    
+    Admin:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+      required:
+        - id
+      
+    AccountList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Account'
+      
+    Unauthenticated:
+      type: object
+      properties:
+        error: 
+          type: string
+          minLength: 3
+          example: Authentication is required!
+#Action is unauthenticated    
+    Forbidden:
+      type: object
+      properties:
+        error: 
+          type: string
+          minLength: 3
+          example: Action is forbidden!
+    
+    IdBadRequest:
+      type: object
+      properties:
+        error: 
+          type: string
+          minLength: 3
+          example: Bad request! Id is not valid
+    
+    InternalServerError:
+      type: object
+      properties:
+        error:
+          type: string
+          minLength: 1
+          example: Internal Server Error
+      required:
+      - error
+      
+      
+  securitySchemes:
+    bearerAuth:           
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

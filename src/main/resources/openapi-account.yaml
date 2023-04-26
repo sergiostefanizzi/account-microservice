@@ -77,8 +77,8 @@ paths:
       summary: Account activation
       description: Account activation
       operationId: activateAccountById
-      security:
-        - bearerAuth: []
+      #security:
+      #  - bearerAuth: []
       parameters:
         - name: accountId
           in: path
@@ -116,8 +116,8 @@ paths:
       summary: Delete an account
       description: Delete an account
       operationId: deleteAccountById
-      security:
-        - bearerAuth: []
+      #security:
+      #  - bearerAuth: []
       parameters:
         - name: accountId
           in: path
@@ -154,8 +154,8 @@ paths:
       summary: Update an account
       description: Update name, surname, gender or password of an account
       operationId: updateAccountById
-      security:
-        - bearerAuth: []
+      #security:
+      #  - bearerAuth: []
       parameters:
       - name: accountId
         in: path
@@ -229,8 +229,8 @@ paths:
       summary: Create an admin, NOT IMPLEMENTED
       description: Create an admin
       operationId: addAdminById
-      security:
-        - bearerAuth: []
+      #security:
+      #  - bearerAuth: []
       parameters:
         - name: accountId
           in: path
@@ -298,8 +298,8 @@ paths:
       summary: Remove an admin, blocco account
       description: Remove an admin
       operationId: deleteAdminById
-      security:
-        - bearerAuth: []
+      #security:
+      #  - bearerAuth: []
       parameters:
         - name: accountId
           in: path
@@ -353,8 +353,8 @@ paths:
       summary: List of all the accounts
       description: List of all the accounts
       operationId: findAllAccounts
-      security:
-        - bearerAuth: []
+      #security:
+      #  - bearerAuth: []
       parameters:
         - name: removedAccount
           in: query

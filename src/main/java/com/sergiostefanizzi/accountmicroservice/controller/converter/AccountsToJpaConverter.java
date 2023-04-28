@@ -6,9 +6,18 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AccountJpaToAccountConverter implements Converter<AccountJpa, Account> {
+public class AccountsToJpaConverter implements Converter<Account, AccountJpa> {
     @Override
-    public Account convert(AccountJpa source) {
+    public AccountJpa convert(Account source) {
+        return new AccountJpa(source.getEmail(),
+                source.getName(),
+                source.getSurname(),
+                source.getBirthdate(),
+                AccountJpa.Gender.valueOf(source.getGender().toString()),
+                source.getPassword());
+    }
+
+    public Account convertBack(AccountJpa source) {
         Account account = new Account(source.getEmail(),
                 source.getBirthdate(),
                 Account.GenderEnum.valueOf(source.getGender().toString()),

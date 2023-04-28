@@ -62,7 +62,7 @@ paths:
                   error:
                     type: string
                     minLength: 1
-                    example: Email already exists  
+                    example: Email esempio@gmail.com already exists
         '500':
           description: Internal Server Error
           content:

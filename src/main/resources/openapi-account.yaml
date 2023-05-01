@@ -52,6 +52,7 @@ paths:
                     example: ['birthdate is mandatory','gender is mandatory']
                     items:
                       type: string
+                      example: 'email is mandatory'
         '409':
           description: Conflict! Account already created
           content:

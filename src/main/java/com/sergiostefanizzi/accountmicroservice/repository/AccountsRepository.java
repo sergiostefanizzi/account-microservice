@@ -8,7 +8,9 @@ import java.util.Optional;
 
 @Repository
 public interface AccountsRepository extends JpaRepository<AccountJpa, Long> {
-    Optional<AccountJpa> findbyEmail(String email);
+    //Verifica che l'email passata come parametro è già stata registrata, nel caso ritorna l'intero Account
+    //Se c'è un match viene ritornato l'oggetto Optional
+    Optional<AccountJpa> findByEmail(String email);
 
 
 }

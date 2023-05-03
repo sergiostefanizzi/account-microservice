@@ -33,24 +33,28 @@ public class AccountsController implements AccountsApi {
 
     @Override
     public ResponseEntity<Void> activateAccountById(Long accountId, Long crc) {
+        //TODO: fare controllo di permesso
         return AccountsApi.super.activateAccountById(accountId, crc);
     }
 
     @Override
     public ResponseEntity<Account> addAccount(Account newAccount){
-        Optional<Account> savedAccount = this.accountsService.save(newAccount);
-        return new ResponseEntity<>(savedAccount.get(), HttpStatus.CREATED);
+        Account savedAccount = this.accountsService.save(newAccount);
+        return new ResponseEntity<>(savedAccount, HttpStatus.CREATED);
     }
 
     @Override
     public ResponseEntity<Void> deleteAccountById(Long accountId) {
+        //TODO: fare controllo di permesso
         this.accountsService.remove(accountId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Override
     public ResponseEntity<Account> updateAccountById(Long accountId, UpdateAccountByIdRequest updateAccountByIdRequest) {
-        return AccountsApi.super.updateAccountById(accountId, updateAccountByIdRequest);
+        //TODO: fare controllo di permesso
+        Account updatedAccount = this.accountsService.update(accountId, updateAccountByIdRequest);
+        return new ResponseEntity<>(updatedAccount, HttpStatus.OK);
     }
 
 }

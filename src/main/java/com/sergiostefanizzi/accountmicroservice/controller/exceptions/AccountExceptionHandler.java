@@ -19,10 +19,31 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler(AccountAlreadyCreated.class)
-    public ResponseEntity<Object> handleAccountAlreadyCreated(AccountAlreadyCreated ex, WebRequest request){
-        String body = "Conflict! Account with email "+ex.getMessage()+" already created!";
+    //post
+    @ExceptionHandler(AccountAlreadyCreatedException.class)
+    public ResponseEntity<Object> handleAccountAlreadyCreatedException(AccountAlreadyCreatedException ex, WebRequest request){
+        String error = "Conflict! Account with email "+ex.getMessage()+" already created!";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
+
+    //delete
+    @ExceptionHandler(AccountIdNotFoundException.class)
+    public ResponseEntity<Object> handleAccountIdNotFoundException(AccountIdNotFoundException ex, WebRequest request){
+        String error = "Bad request! Id is not valid";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    //update
+    @ExceptionHandler(AccountNotFoundException.class)
+    public ResponseEntity<Object> handleAccountNotFoundException(AccountNotFoundException ex, WebRequest request){
+        String error = "Account not found!";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
     }
 
     @Override
@@ -37,12 +58,12 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
-    @ExceptionHandler(AccountIdNotFound.class)
-    public ResponseEntity<Object> handleAccountIdNotFound(AccountIdNotFound ex, WebRequest request){
-        String error = "Bad request! Id is not valid";
+    @ExceptionHandler({RuntimeException.class, Exception.class})
+    public ResponseEntity<Object> handleNotManagedException(RuntimeException ex, WebRequest request){
+        String error = "Internal Error Server!";
         Map<String, String> body = new HashMap<>();
         body.put("error", error);
-        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
 

@@ -5,7 +5,7 @@ import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlr
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountIdNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.UpdateAccountByIdRequest;
+import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.service.AccountsService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +44,7 @@ class AccountsControllerTest {
 
     Account newAccount;
     Account savedAccount;
-    UpdateAccountByIdRequest accountToUpdate;
+    AccountPatch accountToUpdate;
     Long accountId = 1L;
 
     @BeforeEach
@@ -52,7 +52,7 @@ class AccountsControllerTest {
         newAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.now(),
                 Account.GenderEnum.MALE,
-                "dshjdfkdjsf32");
+                "dshjdfkdjsf32!");
         newAccount.setName("Mario");
         newAccount.setSurname("Rossi");
 
@@ -64,7 +64,7 @@ class AccountsControllerTest {
         newAccount.setSurname("Rossi");
         savedAccount.setId(accountId);
 
-        accountToUpdate = new UpdateAccountByIdRequest();
+        accountToUpdate = new AccountPatch();
 
     }
 
@@ -92,7 +92,7 @@ class AccountsControllerTest {
     }
 
     @Test
-    void testAddAccountFailed() throws Exception{
+    void testAddAccountFailedAlreadyCreated() throws Exception{
         String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
         when(this.accountsService.save(newAccount)).thenThrow(AccountAlreadyCreatedException.class);
 
@@ -114,10 +114,24 @@ class AccountsControllerTest {
                         .content(newAccountJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0]").value("email is mandatory"));
+                .andExpect(jsonPath("$.errors[0]").value("Error on email"));
                 //.andExpect(jsonPath("$.errors[1]").value("gender is mandatory"));
     }
 
+    @Test
+    void testAddAccountSuccess_MissingName() throws Exception {
+        newAccount.setName(null);
+        //newAccount.setGender(null);
+        String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
+
+        this.mockMvc.perform(post("/accounts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(newAccountJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated());
+                //.andExpect(jsonPath("$.errors[0]").value("Error on name"));
+        //.andExpect(jsonPath("$.errors[1]").value("gender is mandatory"));
+    }
     @Test
     void testDeleteAccountSuccess() throws Exception{
         doNothing().when(this.accountsService).remove(accountId);
@@ -145,8 +159,8 @@ class AccountsControllerTest {
         //account con campi aggiornati
         accountToUpdate.setName(newAccount.getName());
         accountToUpdate.setSurname(newAccount.getSurname());
-        accountToUpdate.setGender(UpdateAccountByIdRequest.GenderEnum.valueOf(newAccount.getGender().toString()));
-        accountToUpdate.setPassword("hhh3h2h234h4");
+        accountToUpdate.setGender(AccountPatch.GenderEnum.valueOf(newAccount.getGender().toString()));
+        accountToUpdate.setPassword("hhh3h!d2h234h4");
 
         //account che mi aspetto di ricevere
         Account updatedAccount = new Account(
@@ -184,8 +198,8 @@ class AccountsControllerTest {
         //account con campi aggiornati
         accountToUpdate.setName(newAccount.getName());
         accountToUpdate.setSurname(newAccount.getSurname());
-        accountToUpdate.setGender(UpdateAccountByIdRequest.GenderEnum.valueOf(newAccount.getGender().toString()));
-        accountToUpdate.setPassword("hhh3h2h234h4");
+        accountToUpdate.setGender(AccountPatch.GenderEnum.valueOf(newAccount.getGender().toString()));
+        accountToUpdate.setPassword("hhh3h!d2h234h4");
 
 
         //converto l'account che voglio aggiornare in formato json

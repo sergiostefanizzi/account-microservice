@@ -2,7 +2,7 @@ package com.sergiostefanizzi.accountmicroservice.controller;
 
 import com.sergiostefanizzi.accountmicroservice.api.AccountsApi;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.UpdateAccountByIdRequest;
+import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.service.AccountsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -51,7 +51,7 @@ public class AccountsController implements AccountsApi {
     }
 
     @Override
-    public ResponseEntity<Account> updateAccountById(Long accountId, UpdateAccountByIdRequest updateAccountByIdRequest) {
+    public ResponseEntity<Account> updateAccountById(Long accountId, AccountPatch updateAccountByIdRequest) {
         //TODO: fare controllo di permesso
         Account updatedAccount = this.accountsService.update(accountId, updateAccountByIdRequest);
         return new ResponseEntity<>(updatedAccount, HttpStatus.OK);

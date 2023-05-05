@@ -5,7 +5,7 @@ import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlr
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountIdNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.UpdateAccountByIdRequest;
+import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.repository.model.AccountJpa;
 import jakarta.transaction.Transactional;
@@ -47,7 +47,7 @@ public class AccountsService {
     }
 
     @Transactional
-    public Account update(Long accountId, UpdateAccountByIdRequest accountToUpdate){
+    public Account update(Long accountId, AccountPatch accountToUpdate){
         return this.accountsToJpaConverter.convertBack(this.accountsRepository.findById(accountId)
                 .map(accountJpa -> {
                     accountJpa.setName(accountToUpdate.getName() == null ? accountJpa.getName() : accountToUpdate.getName());

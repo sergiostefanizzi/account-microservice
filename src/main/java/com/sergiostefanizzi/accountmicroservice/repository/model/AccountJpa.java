@@ -23,11 +23,9 @@ public class AccountJpa {
     @Size(max = 320)
     private String email;
     @Column(name="name", nullable = false, length = 50)
-    @NotBlank
     @Size(max = 50)
     private String name;
     @Column(name="surname", nullable = false, length = 50)
-    @NotBlank
     @Size(max = 50)
     private String surname;
     @Column(name="birthdate", nullable = false)

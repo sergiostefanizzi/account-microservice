@@ -4,7 +4,7 @@ import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountsToJ
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountIdNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.UpdateAccountByIdRequest;
+import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.repository.model.AccountJpa;
 import org.junit.jupiter.api.AfterEach;
@@ -35,7 +35,7 @@ class AccountsServiceTest {
     AccountJpa newAccountJpa;
     AccountJpa savedAccountJpa;
     Account convertedSavedAccount;
-    UpdateAccountByIdRequest accountToUpdate;
+    AccountPatch accountToUpdate;
     Long accountId = 1L;
     @BeforeEach
     void setUp() {
@@ -135,7 +135,7 @@ class AccountsServiceTest {
     @Test
     void  testUpdateAccountNameSuccess(){
         String newName = "Giuseppe";
-        UpdateAccountByIdRequest accountToUpdate = new UpdateAccountByIdRequest();
+        AccountPatch accountToUpdate = new AccountPatch();
         accountToUpdate.setName(newName);
 
 
@@ -184,7 +184,7 @@ class AccountsServiceTest {
     @Test
     void  testUpdateAccountSurnameNameSuccess(){
         String newSurname = "Verdi";
-        UpdateAccountByIdRequest accountToUpdate = new UpdateAccountByIdRequest();
+        AccountPatch accountToUpdate = new AccountPatch();
         accountToUpdate.setSurname(newSurname);
 
         AccountJpa oldAccountJpa = new AccountJpa(
@@ -231,8 +231,8 @@ class AccountsServiceTest {
 
     @Test
     void  testUpdateAccountGenderSuccess(){
-        UpdateAccountByIdRequest.GenderEnum newGender = UpdateAccountByIdRequest.GenderEnum.FEMALE;
-        UpdateAccountByIdRequest accountToUpdate = new UpdateAccountByIdRequest();
+        AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;
+        AccountPatch accountToUpdate = new AccountPatch();
         accountToUpdate.setGender(newGender);
 
 
@@ -281,7 +281,7 @@ class AccountsServiceTest {
     @Test
     void  testUpdateAccountPasswordSuccess(){
         String newPassword = "43hg434j5g4";
-        UpdateAccountByIdRequest accountToUpdate = new UpdateAccountByIdRequest();
+        AccountPatch accountToUpdate = new AccountPatch();
         accountToUpdate.setPassword(newPassword);
 
 
@@ -331,9 +331,9 @@ class AccountsServiceTest {
     void  testUpdateAccountSuccess(){
         String newName = "Giuseppe";
         String newSurname = "Verdi";
-        UpdateAccountByIdRequest.GenderEnum newGender = UpdateAccountByIdRequest.GenderEnum.FEMALE;
+        AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;
         String newPassword = "43hg434j5g4";
-        UpdateAccountByIdRequest accountToUpdate = new UpdateAccountByIdRequest();
+        AccountPatch accountToUpdate = new AccountPatch();
         accountToUpdate.setName(newName);
         accountToUpdate.setSurname(newSurname);
         accountToUpdate.setGender(newGender);

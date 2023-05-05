@@ -51,7 +51,7 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
         List<String> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(error -> error.getField() + " is mandatory")
+                .map(error -> error.getField()+" "+error.getDefaultMessage())
                 .collect(Collectors.toList());
         Map<String, Object> body = new HashMap<>();
         body.put("errors", errors);

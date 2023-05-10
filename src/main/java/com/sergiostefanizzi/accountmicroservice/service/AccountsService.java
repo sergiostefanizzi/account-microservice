@@ -2,7 +2,6 @@ package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountsToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountIdNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
@@ -13,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 public class AccountsService {
@@ -37,11 +35,11 @@ public class AccountsService {
     public void remove(Long accountId){
         //Spring non riesce a capire il metodo
         if(accountId == null){
-            throw new AccountIdNotFoundException("Bad request! Id is not valid");
+            throw new AccountNotFoundException("Bad request! Id is not valid");
         }
 
         this.accountsRepository.findById(accountId).orElseThrow(
-                () -> new AccountIdNotFoundException("Bad request! Id is not valid")
+                () -> new AccountNotFoundException(accountId)
         );
         this.accountsRepository.deleteById(accountId);
     }
@@ -56,7 +54,7 @@ public class AccountsService {
                     accountJpa.setPassword(accountToUpdate.getPassword() == null ? accountJpa.getPassword() : accountToUpdate.getPassword());
                     return this.accountsRepository.save(accountJpa);
                 })
-                .orElseThrow(() -> new AccountNotFoundException("Account not found!")));
+                .orElseThrow(() -> new AccountNotFoundException(accountId)));
     }
 
 

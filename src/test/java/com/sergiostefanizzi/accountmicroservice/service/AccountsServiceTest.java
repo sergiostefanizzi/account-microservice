@@ -2,7 +2,7 @@ package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountsToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountIdNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
@@ -123,7 +123,7 @@ class AccountsServiceTest {
     @Test
     void testDeleteAccountFailed(){
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.empty());
-        assertThrows(AccountIdNotFoundException.class,
+        assertThrows(AccountNotFoundException.class,
                 () -> this.accountsService.remove(accountId)
         );
 
@@ -328,7 +328,7 @@ class AccountsServiceTest {
     }
 
     @Test
-    void  testUpdateAccountSuccess(){
+    void  testUpdateFullAccountSuccess(){
         String newName = "Giuseppe";
         String newSurname = "Verdi";
         AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;

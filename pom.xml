@@ -100,8 +100,11 @@
 							<goal>generate</goal>
 						</goals>
 						<configuration>
-							<inputSpec>${project.basedir}/src/main/resources/openapi-account.yaml</inputSpec>
+							<inputSpec>${project.basedir}/src/main/resources/openapi/openapi-account.yaml</inputSpec>
 							<generatorName>spring</generatorName>
+							<templateDirectory>
+								${project.basedir}/src/main/resources/openapi/templates
+							</templateDirectory>
 							<configOptions>
 								<documentationProvider>springdoc</documentationProvider>
 								<apiPackage>com.sergiostefanizzi.accountmicroservice.api</apiPackage>

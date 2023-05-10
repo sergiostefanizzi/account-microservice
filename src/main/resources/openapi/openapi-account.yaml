@@ -27,7 +27,7 @@ paths:
       description: Account subscription
       operationId: addAccount
       requestBody:
-        description: The new account
+        description: Account info to be registered
         required: true
         content:
           application/json:
@@ -41,35 +41,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Account'
         '400':
-          description: Bad request! Account was not created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: array
-                    example: ['birthdate is mandatory','gender is mandatory']
-                    items:
-                      type: string
-                      example: 'email is mandatory'
+          $ref: '#/components/responses/BadRequest'
         '409':
-          description: Conflict! Account already created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    minLength: 1
-                    example: Email esempio@gmail.com already exists
+          $ref: '#/components/responses/Conflict'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     
   /accounts/{accountId}:
     put:
@@ -99,17 +75,9 @@ paths:
         '204':
           description: Account has been successfully activated!
         '400':
-          description: Bad Request! The account has not been activated!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IdBadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
                 
     delete:
       tags:
@@ -131,23 +99,13 @@ paths:
         '204':
           description: Account has been successfully deleted!
         '400':
-          description: Bad request! Ids are not valid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IdBadRequest'
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '401':
-          description: Authentication is required!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Unauthenticated'
+          $ref: '#/components/responses/Unauthenticated'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
       
     patch:
       tags:
@@ -169,25 +127,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  minLength: 2
-                  maxLength: 50
-                surname:
-                  type: string
-                  minLength: 2
-                  maxLength: 50
-                gender:
-                  type: string
-                  enum: [MALE, FEMALE, OTHER]
-                password:
-                  type: string
-                  format: password
-                  minLength: 8
-                  maxLength: 255
-                  writeOnly: true
+              $ref: '#/components/schemas/AccountPatch'
       responses:
         '200':
           description: Account has been successfully updated!
@@ -195,32 +135,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Authentication is required!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Unauthenticated'
+          $ref: '#/components/responses/Unauthenticated'
         '404':
-          description: Account Not Found! The account has not been activated!
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: array
-                    example: ['Account Not found']
-                    items:
-                      type: string
-                required:
-                - error
+          $ref: '#/components/responses/NotFound' 
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
   
  
   /admins/{accountId}:
@@ -248,50 +170,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Admin'
         '400':
-          description: Bad request! Admin has not been created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IdBadRequest'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Authentication is required!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Unauthenticated'
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Action is forbidden!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Account Not Found!
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: Account Not Found
+          $ref: '#/components/responses/NotFound' 
         '409':
-          description: Conflict! Admin already created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    minLength: 1
-                    example: Admin already exists 
+          $ref: '#/components/responses/Conflict'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     
     delete:
       tags:
@@ -313,39 +202,15 @@ paths:
         '204':
           description: Admin has been successfully removed!
         '400':
-          description: Bad request! Admin has not been removed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IdBadRequest'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Authentication is required!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Unauthenticated'
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Action is forbidden!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Admin Not Found!
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: Admin Not Found
+          $ref: '#/components/responses/NotFound' 
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
   
   /admins/accounts:
     get:
@@ -371,25 +236,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/AccountList'
         '401':
-          description: Authentication is required!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Unauthenticated'
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Action is forbidden!
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InternalServerError'
-            
+          $ref: '#/components/responses/InternalServerError'
+          
 components:
+
+  responses:
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotFound'
+    BadRequest:
+      description: Bad Request! Action not performed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorList'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Forbidden'
+    Unauthenticated:
+      description: Authentication is required!
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Unauthenticated'
+    Conflict:
+      description: Conflict! Already created
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Conflict'
+    InternalServerError:
+      description: Internal Error Server
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalServerError'
   schemas:
     
     Account:
@@ -398,37 +289,79 @@ components:
         id:
           type: integer
           format: int64
+          minimum: 1
           readOnly: true
+          description: Account id
         email:
           type: string
           format: email
           minLength: 3
           maxLength: 320
+          #pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+          description: Account email, it must be unique
         name:
           type: string
           minLength: 2
           maxLength: 50
+          pattern: '^[a-zA-Z]+$'
+          description: Name of the account owner
         surname:
           type: string
           minLength: 2
           maxLength: 50
+          pattern: '^[a-zA-Z]+$'
+          description: Surname of the account owner
         birthdate:
           type: string
           format: date
+          x-adult: '@Adult'
+          x-past: '@PastOrPresent'
         gender:
           type: string
           enum: [MALE, FEMALE, OTHER]
+          description: Gender of the account owner
         password:
           type: string
           format: password
           minLength: 8
           maxLength: 255
+          pattern: '^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$'
           writeOnly: true
+          description: Account Password
       required:
         - email
         - birthdate
         - gender
         - password
+    
+    
+    AccountPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-Z]+$'
+          description: Name of the account owner
+        surname:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-Z]+$'
+          description: Surname of the account owner
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+          description: Gender of the account owner
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 255
+          pattern: '^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$'
+          writeOnly: true
+          description: Account Password
 
     
     Admin:
@@ -437,7 +370,9 @@ components:
         id:
           type: integer
           format: int64
+          minimum: 1
           readOnly: true
+          description: Admin account id
       required:
         - id
       
@@ -445,6 +380,23 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Account'
+      description: List of accounts
+      
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          minLength: 1
+          description: Error description
+          example: Error description
+    
+    ErrorList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Error'
+      description: List of errors
+      
       
     Unauthenticated:
       type: object
@@ -462,23 +414,30 @@ components:
           minLength: 3
           example: Action is forbidden!
     
-    IdBadRequest:
+     
+    NotFound:
       type: object
       properties:
         error: 
           type: string
           minLength: 3
-          example: Bad request! Id is not valid
+          example: The specified resource was not found!
+    
+    Conflict:
+      type: object
+      properties:
+        error: 
+          type: string
+          minLength: 3
+          example: Resourse already created!
     
     InternalServerError:
       type: object
       properties:
-        error:
+        error: 
           type: string
-          minLength: 1
+          minLength: 3
           example: Internal Server Error
-      required:
-      - error
       
       
   securitySchemes:

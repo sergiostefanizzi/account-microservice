@@ -21,7 +21,7 @@ public class AdultValidator implements ConstraintValidator<Adult, LocalDate> {
         }
         Period period = Period.between(birthdate, LocalDate.now());
 
-        // se la data è nel futuro, la differenza tra è degativa, quindi ritorno true, per non mostrare l'errore della maggiore età
-        return period.isNegative() || period.getYears() >= 18;
+        // se la data e' nel futuro, la differenza tra e' degativa, quindi ritorno true, per non mostrare l'errore della maggiore età
+        return period.getYears() >= 18;
     }
 }

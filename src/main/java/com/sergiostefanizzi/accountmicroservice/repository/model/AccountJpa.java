@@ -40,8 +40,9 @@ public class AccountJpa {
     @NotBlank
     @Size(max = 255)
     private String password;
-    @Column(name="crc")
-    private String crc;
+    @Column(name="validation_code", length = 36)
+    @Size(min = 36)
+    private String validationCode;
     @Column(name="validated_at")
     @PastOrPresent
     private Timestamp validatedAt;
@@ -125,12 +126,12 @@ public class AccountJpa {
         this.password = password;
     }
 
-    public String getCrc() {
-        return crc;
+    public String getValidationCode() {
+        return validationCode;
     }
 
-    public void setCrc(String crc) {
-        this.crc = crc;
+    public void setValidationCode(String validationCode) {
+        this.validationCode = validationCode;
     }
 
     public Timestamp getValidatedAt() {

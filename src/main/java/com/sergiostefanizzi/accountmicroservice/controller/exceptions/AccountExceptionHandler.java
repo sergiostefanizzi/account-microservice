@@ -1,5 +1,6 @@
 package com.sergiostefanizzi.accountmicroservice.controller.exceptions;
 
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -79,5 +80,19 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
+    @ExceptionHandler(ValidationCodeNotValidException.class)
+    public ResponseEntity<Object> handleValidationCodeNotValidException(RuntimeException ex, WebRequest request){
+        String error = "validation code "+ex.getMessage()+" is not valid! The account has not been activated";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Object> handelConstraintViolationException(ConstraintViolationException ex, WebRequest request){
+        String error = ex.getMessage();
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
 }

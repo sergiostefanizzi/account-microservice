@@ -64,13 +64,13 @@ paths:
           schema:
             type: integer
             format: int64
-        - name: crc
+        - name: validation_code
           in: query
-          description: Crc of the account to be activated
+          description: Validation code of the account to be activated
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       responses:
         '204':
           description: Account has been successfully activated!
@@ -315,7 +315,6 @@ components:
           type: string
           format: date
           x-adult: '@Adult'
-          x-past: '@PastOrPresent'
         gender:
           type: string
           enum: [MALE, FEMALE, OTHER]

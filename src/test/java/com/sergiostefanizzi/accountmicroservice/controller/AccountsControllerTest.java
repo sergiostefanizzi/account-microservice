@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.ValidationCodeNotValidException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.service.AccountsService;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,17 +19,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -61,8 +64,7 @@ class AccountsControllerTest {
 
     // Add account Success
     @Test
-    void testAddFullAccountSuccess() throws Exception {
-
+    void testAddAccount_Then_201() throws Exception {
         Account newAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -78,8 +80,8 @@ class AccountsControllerTest {
         newAccount.setSurname("Rossi");
         savedAccount.setId(accountId);
 
-
         String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
+
         when(this.accountsService.save(newAccount)).thenReturn(savedAccount);
 
         this.mockMvc.perform(post("/accounts")
@@ -96,21 +98,20 @@ class AccountsControllerTest {
     }
 
     @Test
-    void testAddAccountSuccess_Missing_Name_Surname() throws Exception {
+    void testAddAccountMissing_Name_Surname_Then_201() throws Exception {
         Account newAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        //newAccount.setSurname("Rossi");
 
         Account savedAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32");
-        //newAccount.setSurname("Rossi");
         savedAccount.setId(accountId);
 
         String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
+
         when(this.accountsService.save(newAccount)).thenReturn(savedAccount);
 
         this.mockMvc.perform(post("/accounts")
@@ -130,7 +131,7 @@ class AccountsControllerTest {
     // Add Account Failed
 
     @Test
-    void testAddAccountFailedAlreadyCreated() throws Exception{
+    void testAddAccount_AlreadyCreated_Then_409() throws Exception{
         Account newAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -139,8 +140,8 @@ class AccountsControllerTest {
         newAccount.setSurname("Rossi");
 
         String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
-        when(this.accountsService.save(newAccount)).thenThrow(new AccountAlreadyCreatedException(newAccount.getEmail()));
 
+        when(this.accountsService.save(newAccount)).thenThrow(new AccountAlreadyCreatedException(newAccount.getEmail()));
 
         this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -151,7 +152,7 @@ class AccountsControllerTest {
     }
 
     @Test
-    void testAddAccountFailed_MissingRequiredFields() throws Exception {
+    void testAddAccount_MissingRequiredFields_Then_400() throws Exception {
         Account newAccount = new Account(null,
                 null,
                 null,
@@ -166,11 +167,13 @@ class AccountsControllerTest {
         errors.add("gender must not be null");
         errors.add("password must not be null");
 
+
         this.mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(newAccountJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException ))
                 .andExpect(jsonPath("$.error[0]").value(in(errors)))
                 .andExpect(jsonPath("$.error[1]").value(in(errors)))
                 .andExpect(jsonPath("$.error[2]").value(in(errors)))
@@ -178,13 +181,14 @@ class AccountsControllerTest {
     }
 
     @Test
-    void testAddAccountFailed_InvalidFields() throws Exception {
+    void testAddAccount_InvalidFields_Then_400() throws Exception {
         Account newAccount = new Account("mario.rossigmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32");
         newAccount.setName("Mario3");
         newAccount.setSurname("Rossi3");
+
         String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
 
         List<String> errors = new ArrayList<>();
@@ -199,6 +203,7 @@ class AccountsControllerTest {
                         .content(newAccountJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException ))
                 .andExpect(jsonPath("$.error[0]").value(in(errors)))
                 .andExpect(jsonPath("$.error[1]").value(in(errors)))
                 .andExpect(jsonPath("$.error[2]").value(in(errors)))
@@ -206,14 +211,16 @@ class AccountsControllerTest {
     }
 
     @Test
-    void testAddAccountFailed_FieldSize() throws Exception {
+    void testAddAccount_FieldSize_Then_400() throws Exception {
         Account newAccount = new Account("m@",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "ds3!");
         newAccount.setName("M");
         newAccount.setSurname("R");
+
         String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
+
         List<String> errors = new ArrayList<>();
         errors.add("email must be a well-formed email address");
         errors.add("email size must be between 3 and 320");
@@ -221,11 +228,13 @@ class AccountsControllerTest {
         errors.add("password size must be between 8 and 255");
         errors.add("name size must be between 2 and 50");
         errors.add("surname size must be between 2 and 50");
+
         this.mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(newAccountJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException ))
                 .andExpect(jsonPath("$.error[0]").value(in(errors)))
                 .andExpect(jsonPath("$.error[1]").value(in(errors)))
                 .andExpect(jsonPath("$.error[2]").value(in(errors)))
@@ -234,51 +243,32 @@ class AccountsControllerTest {
                 .andExpect(jsonPath("$.error[5]").value(in(errors)));
     }
 
-
-
     // Add Account Failed BIRTHDATE
 
     @Test
-    void testAddAccountFailed_Birthdate_Type() throws Exception {
+    void testAddAccount_Birthdate_TypeError_Then_400() throws Exception {
         Account newAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
         newAccount.setName("Mario");
         newAccount.setSurname("Rossi");
-        //String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
+
         JsonNode jsonNode = this.objectMapper.readTree(this.objectMapper.writeValueAsString(newAccount));
         ((ObjectNode) jsonNode).put("birthdate","202308-05");
         String newAccountJson = this.objectMapper.writeValueAsString(jsonNode);
+
         this.mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(newAccountJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof HttpMessageNotReadableException))
                 .andExpect(jsonPath("$.error").value("JSON parse error: Cannot deserialize value of type `java.time.LocalDate` from String \"202308-05\": Failed to deserialize java.time.LocalDate: (java.time.format.DateTimeParseException) Text '202308-05' could not be parsed at index 0"));
     }
 
     @Test
-    void testAddAccountFailed_Birthdate_UnderAge() throws Exception {
-        Account newAccount = new Account("mario.rossi@gmail.com",
-                LocalDate.now(),
-                Account.GenderEnum.MALE,
-                "dshjdfkdjsf32!");
-        newAccount.setName("Mario");
-        newAccount.setSurname("Rossi");
-
-        String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
-
-        this.mockMvc.perform(post("/accounts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(newAccountJson)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("birthdate is not valid! The user must be an adult"));
-    }
-
-    @Test
-    void testAddAccountFailed_Birthdate_NotPastOrPresent() throws Exception {
+    void testAddAccount_Birthdate_UnderAge_Then_400() throws Exception {
         Account newAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(2100,2,2),
                 Account.GenderEnum.MALE,
@@ -293,34 +283,37 @@ class AccountsControllerTest {
                         .content(newAccountJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("birthdate must be a date in the past or in the present"));
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException))
+                .andExpect(jsonPath("$.error").value("birthdate is not valid! The user must be an adult"));
     }
 
     // Add Account Failed GENDER
 
     @Test
-    void testAddAccountFailed_Gender_Type() throws Exception {
+    void testAddAccount_Gender_TypeError_Then_400() throws Exception {
         Account newAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
         newAccount.setName("Mario");
         newAccount.setSurname("Rossi");
-        //String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
+
         JsonNode jsonNode = this.objectMapper.readTree(this.objectMapper.writeValueAsString(newAccount));
         ((ObjectNode) jsonNode).put("gender","male");
         String newAccountJson = this.objectMapper.writeValueAsString(jsonNode);
+
         this.mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(newAccountJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof HttpMessageNotReadableException))
                 .andExpect(jsonPath("$.error").value("JSON parse error: Cannot construct instance of `com.sergiostefanizzi.accountmicroservice.model.Account$GenderEnum`, problem: Unexpected value 'male'"));
     }
 
     // Delete Account Success
     @Test
-    void testDeleteAccountSuccess() throws Exception{
+    void testDeleteAccountById_Then_204() throws Exception{
         doNothing().when(this.accountsService).remove(accountId);
 
         this.mockMvc.perform(delete("/accounts/1")
@@ -330,29 +323,33 @@ class AccountsControllerTest {
 
     }
 
+    // Delete Account Failed
+
     @Test
-    void testDeleteAccountFailed_AccountNotFound() throws Exception{
+    void testDeleteAccountById_Then_404() throws Exception{
         doThrow(new AccountNotFoundException(accountId)).when(this.accountsService).remove(accountId);
+
         this.mockMvc.perform(delete("/accounts/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof AccountNotFoundException))
                 .andExpect(jsonPath("$.error").value("Account with id 1 not found!"));
     }
 
     @Test
-    void testDeleteAccountFailed_AccountIdBadRequest() throws Exception{
-        //doThrow(TypeMismatchException.class).when(this.accountsService).remove(accountId);
+    void testDeleteAccountById_Then_400() throws Exception{
         this.mockMvc.perform(delete("/accounts/rgfd")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentTypeMismatchException))
                 .andExpect(jsonPath("$.error").value("Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'; For input string: \"rgfd\""));
     }
 
-    // Update Account
+    // Update Account SUCCESS
     @Test
-    void testUpdateFullAccountSuccess() throws Exception{
+    void testUpdateAccountBy_Then_200() throws Exception{
         Account oldAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -407,7 +404,7 @@ class AccountsControllerTest {
     }
 
     @Test
-    void testUpdateAccountPasswordSuccess() throws Exception{
+    void testUpdateAccountById_Password_Then_200() throws Exception{
         Account oldAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -459,8 +456,10 @@ class AccountsControllerTest {
 
     }
 
+    // Update Account Failed
+
     @Test
-    void testUpdateAccountFailed_AccountNotFound() throws Exception{
+    void testUpdateAccountById_Then_404() throws Exception{
         Account oldAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -486,11 +485,12 @@ class AccountsControllerTest {
                         .content(accountToUpdateJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof AccountNotFoundException))
                 .andExpect(jsonPath("$.error").value("Account with id 1 not found!"));
     }
 
     @Test
-    void testUpdateAccountFailed_AccountIdBadRequest() throws Exception{
+    void testUpdateAccountById_Then_400() throws Exception{
         Account oldAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -514,11 +514,12 @@ class AccountsControllerTest {
                         .content(accountToUpdateJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentTypeMismatchException))
                 .andExpect(jsonPath("$.error").value("Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'; For input string: \"rr\""));
     }
 
     @Test
-    void testUpdateAccountFailed_InvalidFields_NameSurnamePassword() throws Exception{
+    void testUpdateAccountById_Invalid_NameSurnamePassword_Then_400() throws Exception{
         Account oldAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -548,13 +549,14 @@ class AccountsControllerTest {
                         .content(accountToUpdateJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException))
                 .andExpect(jsonPath("$.error[0]").value(in(errors)))
                 .andExpect(jsonPath("$.error[1]").value(in(errors)))
                 .andExpect(jsonPath("$.error[2]").value(in(errors)));
     }
 
     @Test
-    void testUpdateAccountFailed_InvalidGender() throws Exception{
+    void testUpdateAccountById_Invalid_Gender_Then_400() throws Exception{
         Account oldAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -565,7 +567,6 @@ class AccountsControllerTest {
 
         //account con campi aggiornati
 
-        //accountToUpdate.setGender(AccountPatch.GenderEnum.valueOf(oldAccount.getGender().toString()));
 
         //converto l'account che voglio aggiornare in formato json
         JsonNode jsonNode = this.objectMapper.readTree(this.objectMapper.writeValueAsString(accountToUpdate));
@@ -577,11 +578,12 @@ class AccountsControllerTest {
                         .content(accountToUpdateJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof HttpMessageNotReadableException))
                 .andExpect(jsonPath("$.error").value("JSON parse error: Cannot construct instance of `com.sergiostefanizzi.accountmicroservice.model.AccountPatch$GenderEnum`, problem: Unexpected value 'female'"));
     }
 
     @Test
-    void testUpdateAccountFailed_Size() throws Exception{
+    void testUpdateAccountById_FieldsSizeError_Then_400() throws Exception{
         Account oldAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
@@ -611,10 +613,55 @@ class AccountsControllerTest {
                         .content(accountToUpdateJson)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException))
                 .andExpect(jsonPath("$.error[0]").value(in(errors)))
                 .andExpect(jsonPath("$.error[1]").value(in(errors)))
                 .andExpect(jsonPath("$.error[2]").value(in(errors)))
                 .andExpect(jsonPath("$.error[3]").value(in(errors)));
+    }
+
+    // Account activation SUCCESS
+    @Test
+    void testActivateAccountById_Then_204() throws Exception{
+        String validationCode = UUID.randomUUID().toString();
+        doNothing().when(this.accountsService).active(accountId, validationCode);
+
+        this.mockMvc.perform(put("/accounts/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .queryParam("validation_code", validationCode)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+    }
+
+    // Account activation Failed
+    @Test
+    void testActivateAccountById_NotWellFormatted_Then_400() throws Exception{
+        String validationCode = UUID.randomUUID().toString();
+        String invalidValidationCode = validationCode.substring(0,validationCode.length()-1);
+        doNothing().when(this.accountsService).active(accountId, invalidValidationCode);
+
+
+        this.mockMvc.perform(put("/accounts/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .queryParam("validation_code", invalidValidationCode)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof ConstraintViolationException))
+                .andExpect(jsonPath("$.error").value("activateAccountById.validationCode: must match \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\""));
+    }
+    @Test
+    void testActivateAccountById_Invalid_Code_Then_400() throws Exception{
+        String validationCode = UUID.randomUUID().toString();
+
+        doThrow(new ValidationCodeNotValidException(validationCode)).when(this.accountsService).active(accountId, validationCode);
+
+        this.mockMvc.perform(put("/accounts/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .queryParam("validation_code", validationCode)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof ValidationCodeNotValidException))
+                .andExpect(jsonPath("$.error").value("validation code "+validationCode+" is not valid! The account has not been activated"));
     }
 
 }

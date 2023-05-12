@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 public class AccountsController implements AccountsApi {
@@ -32,9 +33,10 @@ public class AccountsController implements AccountsApi {
     }
 
     @Override
-    public ResponseEntity<Void> activateAccountById(Long accountId, Long crc) {
+    public ResponseEntity<Void> activateAccountById(Long accountId, String validationCode) {
         //TODO: fare controllo di permesso
-        return AccountsApi.super.activateAccountById(accountId, crc);
+        this.accountsService.active(accountId, validationCode);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Override

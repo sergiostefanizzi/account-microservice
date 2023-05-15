@@ -57,16 +57,19 @@ public class AccountsService {
     @Transactional
     public Account update(Long accountId, AccountPatch accountToUpdate){
         // TODO: controllo prima il campo
-        return this.accountsToJpaConverter.convertBack(this.accountsRepository.findById(accountId)
-                .map(accountJpa -> {
-                    accountJpa.setName(accountToUpdate.getName() == null ? accountJpa.getName() : accountToUpdate.getName());
-                    accountJpa.setSurname(accountToUpdate.getSurname() == null ? accountJpa.getSurname() : accountToUpdate.getSurname());
-                    accountJpa.setGender(accountToUpdate.getGender() == null ? accountJpa.getGender():  AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()));
-                    accountJpa.setPassword(accountToUpdate.getPassword() == null ? accountJpa.getPassword() : accountToUpdate.getPassword());
-                    accountJpa.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
-                    return this.accountsRepository.save(accountJpa);
-                })
-                .orElseThrow(() -> new AccountNotFoundException(accountId)));
+        Optional<AccountJpa> optionalAccountJpa = this.accountsRepository.findById(accountId);
+        if (optionalAccountJpa.isPresent()){
+            AccountJpa accountJpa = optionalAccountJpa.get();
+            if (accountToUpdate.getName() != null)  accountJpa.setName(accountToUpdate.getName());
+            if (accountToUpdate.getSurname() != null)  accountJpa.setSurname(accountToUpdate.getSurname());
+            if (accountToUpdate.getGender() != null)  accountJpa.setGender(AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()));
+            if (accountToUpdate.getPassword() != null)  accountJpa.setPassword( accountToUpdate.getPassword());
+            accountJpa.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
+            AccountJpa updatedAccountJpa = this.accountsRepository.save(accountJpa);
+            return this.accountsToJpaConverter.convertBack(updatedAccountJpa);
+        } else {
+            throw new AccountNotFoundException(accountId);
+        }
     }
 
     @Transactional

@@ -25,9 +25,11 @@ public class AccountJpa {
     private String email;
     @Column(name="name", nullable = false, length = 50)
     @Size(max = 50)
+    @Pattern(regexp = "^[a-zA-Z]+$")
     private String name;
     @Column(name="surname", nullable = false, length = 50)
     @Size(max = 50)
+    @Pattern(regexp = "^[a-zA-Z]+$")
     private String surname;
     @Column(name="birthdate", nullable = false)
     @NotNull
@@ -39,6 +41,7 @@ public class AccountJpa {
     @Column(name="password", nullable = false)
     @NotBlank
     @Size(max = 255)
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$")
     private String password;
     @Column(name="validation_code", length = 36)
     @Size(min = 36)

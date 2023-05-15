@@ -3,10 +3,12 @@ package com.sergiostefanizzi.accountmicroservice.service;
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountsToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.ValidationCodeNotValidException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.repository.model.AccountJpa;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +18,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@Slf4j
 class AccountsServiceTest {
     @Mock
     private AccountsRepository accountsRepository;
@@ -37,8 +42,7 @@ class AccountsServiceTest {
     AccountJpa newAccountJpa;
     AccountJpa savedAccountJpa;
     AccountJpa oldAccountJpa;
-
-    AccountPatch accountToUpdate;
+    UUID validationCode;
     Long accountId = 1L;
     @BeforeEach
     void setUp() {
@@ -56,7 +60,7 @@ class AccountsServiceTest {
                 AccountJpa.Gender.valueOf(newAccount.getGender().toString()),
                 newAccount.getPassword());
 
-        UUID validationCode = UUID.randomUUID();
+        validationCode = UUID.randomUUID();
         newAccountJpa.setValidationCode(validationCode.toString());
 
         savedAccountJpa = new AccountJpa(newAccountJpa.getEmail(),
@@ -147,7 +151,7 @@ class AccountsServiceTest {
     // UPDATE ACCOUNT
 
     @Test
-    void  testUpdate_Success(){
+    void testUpdate_Success(){
         String newName = "Giuseppe";
         String newSurname = "Verdi";
         AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;
@@ -195,7 +199,7 @@ class AccountsServiceTest {
     }
 
     @Test
-    void  testUpdate_Name_Success(){
+    void testUpdate_Name_Success(){
         String newName = "Giuseppe";
 
         AccountPatch accountToUpdate = new AccountPatch();
@@ -237,7 +241,7 @@ class AccountsServiceTest {
     }
 
     @Test
-    void  testUpdate_Surname_Success(){
+    void testUpdate_Surname_Success(){
         String newSurname = "Verdi";
 
         AccountPatch accountToUpdate = new AccountPatch();
@@ -279,7 +283,7 @@ class AccountsServiceTest {
     }
 
     @Test
-    void  testUpdate_Gender_Success(){
+    void testUpdate_Gender_Success(){
         AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;
         AccountPatch accountToUpdate = new AccountPatch();
         accountToUpdate.setGender(newGender);
@@ -320,7 +324,7 @@ class AccountsServiceTest {
     }
 
     @Test
-    void  testUpdate_Password_Success(){
+    void testUpdate_Password_Success(){
         String newPassword = "43hg434j5g4!";
 
         AccountPatch accountToUpdate = new AccountPatch();
@@ -362,7 +366,7 @@ class AccountsServiceTest {
     }
 
     @Test
-    void  testUpdate_NotFound_Failed(){
+    void testUpdate_NotFound_Failed(){
         String newName = "Giuseppe";
         String newSurname = "Verdi";
         AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;
@@ -382,4 +386,77 @@ class AccountsServiceTest {
         verify(this.accountsRepository, times(1)).findById(accountId);
         verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
     }
+
+    // ACTIVE ACCOUNT
+
+    @Test
+    void testActive_Success(){
+        log.info(savedAccountJpa.getValidatedAt() == null ? "NULL" : savedAccountJpa.getValidatedAt().toString());
+        Timestamp validation = savedAccountJpa.getValidatedAt();
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(savedAccountJpa));
+
+
+        this.accountsService.active(accountId, validationCode.toString());
+
+        log.info(savedAccountJpa.getValidatedAt() == null ? "NULL" : savedAccountJpa.getValidatedAt().toString());
+
+
+        assertNotEquals(validation, savedAccountJpa.getValidatedAt());
+        assertEquals(validationCode.toString(), savedAccountJpa.getValidationCode());
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(1)).save(savedAccountJpa);
+
+    }
+
+    @Test
+    void testActive_AlreadyValidated_Success(){
+        savedAccountJpa.setValidatedAt(Timestamp.valueOf(LocalDateTime.of(2022,1,2,12,15,0)));
+        log.info(savedAccountJpa.getValidatedAt() == null ? "NULL" : savedAccountJpa.getValidatedAt().toString());
+        Timestamp validation = savedAccountJpa.getValidatedAt();
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(savedAccountJpa));
+
+
+        this.accountsService.active(accountId, validationCode.toString());
+
+        log.info(savedAccountJpa.getValidatedAt() == null ? "NULL" : savedAccountJpa.getValidatedAt().toString());
+
+        assertEquals(validation, savedAccountJpa.getValidatedAt());
+        assertEquals(validationCode.toString(), savedAccountJpa.getValidationCode());
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        //dato che validatedAt è diverso da null, quindi l'account è già stato validato, save non sarà chiamata
+        verify(this.accountsRepository, times(0)).save(savedAccountJpa);
+
+    }
+
+    @Test
+    void testActive_AccountNotFound_Failed(){
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class,
+                ()->{
+                    this.accountsService.active(accountId, validationCode.toString());
+                }
+        );
+
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
+
+    }
+
+    @Test
+    void testActive_ValidationCode_NotValid_Failed(){
+        UUID invalidCode = UUID.randomUUID();
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(savedAccountJpa));
+
+        assertNotEquals(invalidCode.toString(), savedAccountJpa.getValidationCode());
+        assertThrows(ValidationCodeNotValidException.class,
+                ()->{
+                    this.accountsService.active(accountId, invalidCode.toString());
+                }
+        );
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
+
+    }
+
 }

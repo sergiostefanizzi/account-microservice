@@ -48,10 +48,11 @@ public class AccountsService {
             throw new AccountNotFoundException("Bad request! Id is not valid");
         }
 
-        this.accountsRepository.findById(accountId).orElseThrow(
+        AccountJpa accountToRemove = this.accountsRepository.findById(accountId).orElseThrow(
                 () -> new AccountNotFoundException(accountId)
         );
-        this.accountsRepository.deleteById(accountId);
+        accountToRemove.setDeletedAt(Timestamp.valueOf(LocalDateTime.now()));
+        this.accountsRepository.save(accountToRemove);
     }
 
     @Transactional

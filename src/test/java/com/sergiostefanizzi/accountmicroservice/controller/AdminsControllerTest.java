@@ -1,6 +1,10 @@
 package com.sergiostefanizzi.accountmicroservice.controller;
 
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
+import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.service.AdminsService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,17 +15,20 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,13 +50,91 @@ class AdminsControllerTest {
     }
 
     @Test
-    void addAdminById() {
+    void testAddAdminById_Then_201() throws Exception{
+        Long accountId = 1L;
+        Admin newAdmin = new Admin(accountId);
+
+        when(this.adminsService.save(accountId)).thenReturn(newAdmin);
+
+        this.mockMvc.perform(post("/admins/{accountId}",accountId)
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(newAdmin.getId()));
     }
 
     @Test
-    void deleteAdminById() {
+    void testAddAdminById_Then_400() throws Exception{
+        this.mockMvc.perform(post("/admins/{accountId}","notLong")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").isNotEmpty());
     }
 
+    @Test
+    void testAddAdminById_Then_404() throws Exception{
+        Long accountId = 1L;
+
+        when(this.adminsService.save(accountId)).thenThrow(new AccountNotFoundException(accountId));
+
+        this.mockMvc.perform(post("/admins/{accountId}",accountId)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Account with id "+accountId+" not found!"));
+    }
+
+    @Test
+    void testAddAdminById_Then_409() throws Exception{
+        Long accountId = 1L;
+
+        when(this.adminsService.save(accountId)).thenThrow(new AdminAlreadyCreatedException(accountId));
+
+        this.mockMvc.perform(post("/admins/{accountId}",accountId)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Conflict! Admin with id "+accountId+" already created!"));
+    }
+    @Test
+    void deleteAdminById_Then_204() throws Exception{
+        Long accountId = 1L;
+        doNothing().when(this.adminsService).remove(accountId);
+
+        this.mockMvc.perform(delete("/admins/{accountId}",accountId)
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteAdminById_Then_400() throws Exception{
+        Long accountId = 1L;
+        doNothing().when(this.adminsService).remove(accountId);
+
+        this.mockMvc.perform(delete("/admins/{accountId}","notLong")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+    @Test
+    void deleteAdminById_AccountNotFound_Then_404() throws Exception{
+        Long accountId = 1L;
+        doThrow(new AccountNotFoundException(accountId)).when(this.adminsService).remove(accountId);
+
+        this.mockMvc.perform(delete("/admins/{accountId}",accountId)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Account with id "+accountId+" not found!"));
+    }
+
+    @Test
+    void deleteAdminById_AdminNotFound_Then_404() throws Exception{
+        Long accountId = 1L;
+        doThrow(new AdminNotFoundException(accountId)).when(this.adminsService).remove(accountId);
+
+        this.mockMvc.perform(delete("/admins/{accountId}",accountId)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Admin with id "+accountId+" not found!"));
+    }
+
+    //FIND ALL ACCOUNTS
     @Test
     void testFindAllAccounts_Then_200() throws Exception{
         List<Account> accountList = new ArrayList<>();

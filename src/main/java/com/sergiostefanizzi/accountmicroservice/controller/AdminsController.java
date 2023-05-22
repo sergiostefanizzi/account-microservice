@@ -31,12 +31,14 @@ public class AdminsController implements AdminsApi {
 
     @Override
     public ResponseEntity<Admin> addAdminById(Long accountId) {
-        return AdminsApi.super.addAdminById(accountId);
+        Admin savedAdmin = this.adminsService.save(accountId);
+        return new ResponseEntity<>(savedAdmin, HttpStatus.CREATED);
     }
 
     @Override
     public ResponseEntity<Void> deleteAdminById(Long accountId) {
-        return AdminsApi.super.deleteAdminById(accountId);
+        this.adminsService.remove(accountId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Override

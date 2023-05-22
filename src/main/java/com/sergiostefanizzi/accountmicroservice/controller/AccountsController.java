@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @Controller
 public class AccountsController implements AccountsApi {
-    private AccountsService accountsService;
+    private final AccountsService accountsService;
 
     @Autowired
     public AccountsController(AccountsService accountsService) {

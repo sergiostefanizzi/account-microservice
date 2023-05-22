@@ -232,7 +232,7 @@ paths:
         '200':
           description: List of all accounts found and returned
           content:
-            appication/json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/AccountList'
         '401':

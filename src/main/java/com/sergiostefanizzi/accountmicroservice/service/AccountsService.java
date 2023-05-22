@@ -1,6 +1,6 @@
 package com.sergiostefanizzi.accountmicroservice.service;
 
-import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountsToJpaConverter;
+import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.ValidationCodeNotValidException;
@@ -25,7 +25,7 @@ public class AccountsService {
     @Autowired
     private AccountsRepository accountsRepository;
     @Autowired
-    private AccountsToJpaConverter accountsToJpaConverter;
+    private AccountToJpaConverter accountToJpaConverter;
 
     @Transactional
     public Account save(Account newAccount) {
@@ -34,11 +34,11 @@ public class AccountsService {
             throw new AccountAlreadyCreatedException(newAccount.getEmail());
         }
         UUID validationCode = UUID.randomUUID();
-        AccountJpa newAccountJpa = this.accountsToJpaConverter.convert(newAccount);
+        AccountJpa newAccountJpa = this.accountToJpaConverter.convert(newAccount);
         Objects.requireNonNull(newAccountJpa).setValidationCode(validationCode.toString());
         log.info("validation code ---> "+validationCode);
         AccountJpa savedAccountJpa = this.accountsRepository.save(Objects.requireNonNull(newAccountJpa));
-        return this.accountsToJpaConverter.convertBack(savedAccountJpa);
+        return this.accountToJpaConverter.convertBack(savedAccountJpa);
     }
 
     @Transactional
@@ -76,7 +76,7 @@ public class AccountsService {
                 if (accountToUpdate.getPassword() != null)  accountJpa.setPassword( accountToUpdate.getPassword());
                 accountJpa.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
                 AccountJpa updatedAccountJpa = this.accountsRepository.save(accountJpa);
-                return this.accountsToJpaConverter.convertBack(updatedAccountJpa);
+                return this.accountToJpaConverter.convertBack(updatedAccountJpa);
             } else {
                 throw new AccountNotFoundException(accountId);
             }

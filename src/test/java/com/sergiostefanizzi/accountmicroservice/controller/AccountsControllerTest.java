@@ -317,7 +317,6 @@ class AccountsControllerTest {
         doNothing().when(this.accountsService).remove(accountId);
 
         this.mockMvc.perform(delete("/accounts/1")
-                        .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 

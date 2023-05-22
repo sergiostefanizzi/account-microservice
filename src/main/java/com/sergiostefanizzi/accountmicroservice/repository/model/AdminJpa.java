@@ -36,10 +36,10 @@ public class AdminJpa {
 
     public AdminJpa(){}
 
-    public AdminJpa(Timestamp createdAt, Timestamp updatedAt, AccountJpa account) {
+    public AdminJpa(Timestamp createdAt, AccountJpa account) {
         this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
         this.account = account;
+        this.id = account.getId();
     }
 
     public Long getId() {

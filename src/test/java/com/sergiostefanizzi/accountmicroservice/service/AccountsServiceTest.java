@@ -1,6 +1,6 @@
 package com.sergiostefanizzi.accountmicroservice.service;
 
-import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountsToJpaConverter;
+import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.ValidationCodeNotValidException;
@@ -33,7 +33,7 @@ class AccountsServiceTest {
     @Mock
     private AccountsRepository accountsRepository;
     @Mock
-    private AccountsToJpaConverter accountsToJpaConverter;
+    private AccountToJpaConverter accountToJpaConverter;
     @InjectMocks
     private AccountsService accountsService;
 
@@ -98,9 +98,9 @@ class AccountsServiceTest {
     @Test
     void testSave_Success() {
         when(this.accountsRepository.findByEmail(newAccount.getEmail())).thenReturn(Optional.empty());
-        when(this.accountsToJpaConverter.convert(newAccount)).thenReturn(newAccountJpa);
+        when(this.accountToJpaConverter.convert(newAccount)).thenReturn(newAccountJpa);
         when(this.accountsRepository.save(newAccountJpa)).thenReturn(savedAccountJpa);
-        when(this.accountsToJpaConverter.convertBack(savedAccountJpa)).thenReturn(convertedSavedAccount);
+        when(this.accountToJpaConverter.convertBack(savedAccountJpa)).thenReturn(convertedSavedAccount);
 
         Account savedAccount = this.accountsService.save(newAccount);
 
@@ -224,7 +224,7 @@ class AccountsServiceTest {
 
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
         when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountsToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
+        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
 
         Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
 
@@ -235,6 +235,7 @@ class AccountsServiceTest {
         assertEquals(accountToUpdate.getPassword(), updatedAccount.getPassword());
         verify(this.accountsRepository, times(1)).findById(accountId);
         verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
+        verify(this.accountToJpaConverter, times(1)).convertBack(updatedAccountJpa);
     }
 
     @Test
@@ -266,7 +267,7 @@ class AccountsServiceTest {
 
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
         when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountsToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
+        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
 
         Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
 
@@ -308,7 +309,7 @@ class AccountsServiceTest {
 
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
         when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountsToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
+        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
 
         Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
 
@@ -349,7 +350,7 @@ class AccountsServiceTest {
 
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
         when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountsToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
+        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
 
         Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
 
@@ -391,7 +392,7 @@ class AccountsServiceTest {
 
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
         when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountsToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
+        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
 
         Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
 

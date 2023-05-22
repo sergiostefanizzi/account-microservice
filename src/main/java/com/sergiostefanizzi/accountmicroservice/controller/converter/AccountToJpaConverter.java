@@ -6,7 +6,7 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AccountsToJpaConverter implements Converter<Account, AccountJpa> {
+public class AccountToJpaConverter implements Converter<Account, AccountJpa> {
     @Override
     public AccountJpa convert(Account source) {
         //TODO: non funziona se manca uno o più campi

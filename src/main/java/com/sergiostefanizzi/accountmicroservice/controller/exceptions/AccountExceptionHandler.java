@@ -95,4 +95,5 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
         body.put("error", error);
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
+
 }

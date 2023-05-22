@@ -132,24 +132,63 @@ class AccountsServiceTest {
     // DELETE ACCOUNT
     @Test
     void testRemove_Success(){
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(savedAccountJpa));
-        doNothing().when(this.accountsRepository).deleteById(accountId);
-        this.accountsService.remove(savedAccountJpa.getId());
-        verify(this.accountsRepository, times(1)).deleteById(accountId);
+        AccountJpa accountToRemove = new AccountJpa(
+                savedAccountJpa.getEmail(),
+                savedAccountJpa.getName(),
+                savedAccountJpa.getSurname(),
+                savedAccountJpa.getBirthdate(),
+                savedAccountJpa.getGender(),
+                savedAccountJpa.getPassword()
+        );
+        accountToRemove.setId(savedAccountJpa.getId());
+        log.info(accountToRemove.getDeletedAt() == null ? "deletedAt is NULL" : "deletedAt is "+accountToRemove.getDeletedAt().toString());
+
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountToRemove));
+
+        this.accountsService.remove(accountToRemove.getId());
+
+        log.info(accountToRemove.getDeletedAt() == null ? "deletedAt is NULL" : "deletedAt is "+accountToRemove.getDeletedAt().toString());
+        assertNotNull(accountToRemove.getDeletedAt());
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(1)).save(accountToRemove);
     }
 
     @Test
-    void testRemove_Failed(){
+    void testRemove_AccountNotFound_Failed(){
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.empty());
         assertThrows(AccountNotFoundException.class,
                 () -> this.accountsService.remove(accountId)
         );
 
-        verify(this.accountsRepository, times(0)).deleteById(newAccountJpa.getId());
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
+    }
+
+    @Test
+    void testRemove_AccountAlreadyRemoved_Failed(){
+        AccountJpa accountToRemove = new AccountJpa(
+                savedAccountJpa.getEmail(),
+                savedAccountJpa.getName(),
+                savedAccountJpa.getSurname(),
+                savedAccountJpa.getBirthdate(),
+                savedAccountJpa.getGender(),
+                savedAccountJpa.getPassword()
+        );
+        accountToRemove.setId(savedAccountJpa.getId());
+        accountToRemove.setDeletedAt(Timestamp.valueOf(LocalDateTime.now()));
+
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountToRemove));
+
+        assertThrows(AccountNotFoundException.class,
+                () -> this.accountsService.remove(accountId)
+        );
+
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
     }
 
     // UPDATE ACCOUNT
-
+    //TODO: modificare i test di update secondo la modifica in remove
     @Test
     void testUpdate_Success(){
         String newName = "Giuseppe";
@@ -366,22 +405,33 @@ class AccountsServiceTest {
     }
 
     @Test
-    void testUpdate_NotFound_Failed(){
-        String newName = "Giuseppe";
-        String newSurname = "Verdi";
-        AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;
-        String newPassword = "43hg434j5g4!";
-
-        AccountPatch accountToUpdate = new AccountPatch();
-        accountToUpdate.setName(newName);
-        accountToUpdate.setSurname(newSurname);
-        accountToUpdate.setGender(newGender);
-        accountToUpdate.setPassword(newPassword);
-
+    void testUpdate_AccountNotFound_Failed(){
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.empty());
 
         assertThrows(AccountNotFoundException.class,() -> {
-            this.accountsService.update(accountId, accountToUpdate);
+            this.accountsService.update(accountId, any(AccountPatch.class));
+        });
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
+    }
+
+    @Test
+    void testUpdate_RemovedAccount_Failed(){
+        AccountJpa removedAccountJpa = new AccountJpa(
+                oldAccountJpa.getEmail(),
+                oldAccountJpa.getName(),
+                oldAccountJpa.getSurname(),
+                oldAccountJpa.getBirthdate(),
+                oldAccountJpa.getGender(),
+                oldAccountJpa.getPassword()
+        );
+        removedAccountJpa.setId(accountId);
+        removedAccountJpa.setDeletedAt(Timestamp.valueOf(LocalDateTime.of(2022,5,4,12,30,15)));
+
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(removedAccountJpa));
+
+        assertThrows(AccountNotFoundException.class,() -> {
+            this.accountsService.update(accountId, any(AccountPatch.class));
         });
         verify(this.accountsRepository, times(1)).findById(accountId);
         verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));

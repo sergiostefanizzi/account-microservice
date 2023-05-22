@@ -51,8 +51,15 @@ public class AccountsService {
         AccountJpa accountToRemove = this.accountsRepository.findById(accountId).orElseThrow(
                 () -> new AccountNotFoundException(accountId)
         );
-        accountToRemove.setDeletedAt(Timestamp.valueOf(LocalDateTime.now()));
-        this.accountsRepository.save(accountToRemove);
+        //Non posso rimuovere un account gia' rimosso
+        if (accountToRemove.getDeletedAt() == null) {
+            accountToRemove.setDeletedAt(Timestamp.valueOf(LocalDateTime.now()));
+            this.accountsRepository.save(accountToRemove);
+        } else {
+            throw new AccountNotFoundException(accountId);
+        }
+
+
     }
 
     @Transactional
@@ -61,13 +68,18 @@ public class AccountsService {
         Optional<AccountJpa> optionalAccountJpa = this.accountsRepository.findById(accountId);
         if (optionalAccountJpa.isPresent()){
             AccountJpa accountJpa = optionalAccountJpa.get();
-            if (accountToUpdate.getName() != null)  accountJpa.setName(accountToUpdate.getName());
-            if (accountToUpdate.getSurname() != null)  accountJpa.setSurname(accountToUpdate.getSurname());
-            if (accountToUpdate.getGender() != null)  accountJpa.setGender(AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()));
-            if (accountToUpdate.getPassword() != null)  accountJpa.setPassword( accountToUpdate.getPassword());
-            accountJpa.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
-            AccountJpa updatedAccountJpa = this.accountsRepository.save(accountJpa);
-            return this.accountsToJpaConverter.convertBack(updatedAccountJpa);
+            //non posso aggiornare un account eliminato
+            if (accountJpa.getDeletedAt() == null){
+                if (accountToUpdate.getName() != null)  accountJpa.setName(accountToUpdate.getName());
+                if (accountToUpdate.getSurname() != null)  accountJpa.setSurname(accountToUpdate.getSurname());
+                if (accountToUpdate.getGender() != null)  accountJpa.setGender(AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()));
+                if (accountToUpdate.getPassword() != null)  accountJpa.setPassword( accountToUpdate.getPassword());
+                accountJpa.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
+                AccountJpa updatedAccountJpa = this.accountsRepository.save(accountJpa);
+                return this.accountsToJpaConverter.convertBack(updatedAccountJpa);
+            } else {
+                throw new AccountNotFoundException(accountId);
+            }
         } else {
             throw new AccountNotFoundException(accountId);
         }

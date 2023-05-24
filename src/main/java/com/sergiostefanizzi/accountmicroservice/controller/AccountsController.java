@@ -35,6 +35,7 @@ public class AccountsController implements AccountsApi {
     @Override
     public ResponseEntity<Void> activateAccountById(Long accountId, String validationCode) {
         //TODO: fare controllo di permesso
+        //ciao
         this.accountsService.active(accountId, validationCode);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

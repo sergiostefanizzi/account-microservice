@@ -81,9 +81,9 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
-    @ExceptionHandler(ValidationCodeNotValidException.class)
-    public ResponseEntity<Object> handleValidationCodeNotValidException(RuntimeException ex, WebRequest request){
-        String error = "validation code "+ex.getMessage()+" is not valid! The account has not been activated";
+    @ExceptionHandler(AccountNotActivedException.class)
+    public ResponseEntity<Object> handleAccountNotActivedException(RuntimeException ex, WebRequest request){
+        String error = "Error during activation of the account!";
         Map<String, String> body = new HashMap<>();
         body.put("error", error);
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
@@ -113,11 +113,4 @@ public class AccountExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
-    @ExceptionHandler(AdminNotFoundException.class)
-    public ResponseEntity<Object> handleAdminNotFoundException(AdminNotFoundException ex, WebRequest request){
-        String error = "Admin with id "+ex.getMessage()+" not found!";
-        Map<String, String> body = new HashMap<>();
-        body.put("error", error);
-        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
-    }
 }

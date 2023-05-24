@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 public class AccountToJpaConverter implements Converter<Account, AccountJpa> {
     @Override
     public AccountJpa convert(Account source) {
-        //TODO: non funziona se manca uno o più campi
         return new AccountJpa(source.getEmail(),
                 source.getName(),
                 source.getSurname(),
@@ -21,8 +20,7 @@ public class AccountToJpaConverter implements Converter<Account, AccountJpa> {
     public Account convertBack(AccountJpa source) {
         Account account = new Account(source.getEmail(),
                 source.getBirthdate(),
-                Account.GenderEnum.valueOf(source.getGender().toString()),
-                source.getPassword());
+                Account.GenderEnum.valueOf(source.getGender().toString()), null);
         account.setName(source.getName());
         account.setSurname(source.getSurname());
         account.setId(source.getId());

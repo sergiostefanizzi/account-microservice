@@ -2,10 +2,8 @@ package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AdminJpaToAdminConverter;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
@@ -97,6 +95,7 @@ class AdminsServiceTest {
 
         assertEquals(2,accountList.size());
         verify(this.accountsRepository, times(1)).findAll();
+        verify(this.accountToJpaConverter, times(accountList.size())).convertBack(any(AccountJpa.class));
 
     }
     @Test
@@ -143,7 +142,7 @@ class AdminsServiceTest {
 
         assertEquals(1,accountList.size());
         verify(this.accountsRepository, times(1)).findAll();
-
+        verify(this.accountToJpaConverter, times(accountList.size())).convertBack(any(AccountJpa.class));
     }
 
     //SAVE
@@ -218,9 +217,9 @@ class AdminsServiceTest {
 
     //REMOVE
     @Test
-    void testRemove_Success(){
+    void testRemove_Admin_Success(){
         Long accountId = 1L;
-        AccountJpa savedAccountJpa = new AccountJpa(
+        AccountJpa accountToDeleteJpa = new AccountJpa(
                 "mario.rossi@gmail.com",
                 "Mario",
                 "Rossi",
@@ -228,38 +227,27 @@ class AdminsServiceTest {
                 AccountJpa.Gender.MALE,
                 "fsfweewr423!gff"
         );
-        savedAccountJpa.setId(accountId);
+        accountToDeleteJpa.setId(accountId);
 
-        AdminJpa savedAdminJpa = new AdminJpa(
+        AdminJpa adminToDeleteJpa = new AdminJpa(
                 Timestamp.valueOf(LocalDateTime.of(2023,3,4,12,3,5)),
-                savedAccountJpa);
+                accountToDeleteJpa);
 
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(savedAccountJpa));
-        when(this.adminsRepository.findById(accountId)).thenReturn(Optional.of(savedAdminJpa));
-        doNothing().when(this.adminsRepository).deleteById(accountId);
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountToDeleteJpa));
+        when(this.adminsRepository.findById(accountId)).thenReturn(Optional.of(adminToDeleteJpa));
 
         this.adminsService.remove(accountId);
 
         verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
         verify(this.adminsRepository, times(1)).findById(accountId);
-        verify(this.adminsRepository, times(1)).deleteById(accountId);
-    }
-    @Test
-    void testRemove_AccountNotFound_Failed(){
-        when(this.accountsRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        assertThrows(AccountNotFoundException.class,
-                () -> this.adminsService.remove(anyLong())
-        );
-
-        verify(this.accountsRepository, times(1)).findById(anyLong());
-        verify(this.adminsRepository, times(0)).deleteById(anyLong());
+        verify(this.adminsRepository, times(1)).save(any(AdminJpa.class));
     }
 
     @Test
-    void testRemove_AdminNotFound_Failed(){
+    void testRemove_Account_Success(){
         Long accountId = 1L;
-        AccountJpa savedAccount = new AccountJpa(
+        AccountJpa accountToDeleteJpa = new AccountJpa(
                 "mario.rossi@gmail.com",
                 "Mario",
                 "Rossi",
@@ -267,17 +255,33 @@ class AdminsServiceTest {
                 AccountJpa.Gender.MALE,
                 "fsfweewr423!gff"
         );
-        savedAccount.setId(accountId);
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(savedAccount));
+        accountToDeleteJpa.setId(accountId);
+
+
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountToDeleteJpa));
         when(this.adminsRepository.findById(accountId)).thenReturn(Optional.empty());
 
-        assertThrows(AdminNotFoundException.class,
+        this.adminsService.remove(accountId);
+
+        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
+        verify(this.adminsRepository, times(1)).findById(accountId);
+        verify(this.adminsRepository, times(0)).save(any(AdminJpa.class));
+    }
+    @Test
+    void testRemove_NotFound_Failed(){
+        Long accountId = 1L;
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class,
                 () -> this.adminsService.remove(accountId)
         );
 
         verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.adminsRepository, times(1)).findById(accountId);
-        verify(this.adminsRepository, times(0)).deleteById(accountId);
+        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
+        verify(this.adminsRepository, times(0)).findById(accountId);
+        verify(this.adminsRepository, times(0)).save(any(AdminJpa.class));
     }
+
 
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotActivedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.ValidationCodeNotValidException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.TypeMismatchException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -29,7 +29,6 @@ import java.time.LocalDate;
 import java.util.*;
 
 import static org.hamcrest.Matchers.in;
-import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -652,15 +651,14 @@ class AccountsControllerTest {
     void testActivateAccountById_Invalid_Code_Then_400() throws Exception{
         String validationCode = UUID.randomUUID().toString();
 
-        doThrow(new ValidationCodeNotValidException(validationCode)).when(this.accountsService).active(accountId, validationCode);
+        doThrow(new AccountNotActivedException(accountId)).when(this.accountsService).active(accountId, validationCode);
 
         this.mockMvc.perform(put("/accounts/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", validationCode)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof ValidationCodeNotValidException))
-                .andExpect(jsonPath("$.error").value("validation code "+validationCode+" is not valid! The account has not been activated"));
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof AccountNotActivedException));
     }
 
 }

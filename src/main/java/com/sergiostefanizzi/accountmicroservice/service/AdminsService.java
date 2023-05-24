@@ -4,7 +4,7 @@ import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJp
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AdminJpaToAdminConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminNotFoundException;
+
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -65,16 +66,23 @@ public class AdminsService {
 
     public void remove(Long accountId) {
         //controllo esistenza account
-        this.accountsRepository.findById(accountId)
+        AccountJpa accountToDelete = this.accountsRepository.findById(accountId)
                 .filter(accountJpa -> accountJpa.getDeletedAt() == null)
                 .orElseThrow(
                         () -> new AccountNotFoundException(accountId)
                 );
-        //controllo esistenza admin
-        this.adminsRepository.findById(accountId)
-                .orElseThrow(
-                        () -> new AdminNotFoundException(accountId)
-                );
-        this.adminsRepository.deleteById(accountId);
+        Timestamp deletedAt = Timestamp.valueOf(LocalDateTime.now());
+        accountToDelete.setDeletedAt(deletedAt);
+        this.accountsRepository.save(accountToDelete);
+
+        Optional<AdminJpa> adminToDeleteOptional = this.adminsRepository.findById(accountId)
+                .filter(adminJpa -> adminJpa.getDeletedAt() == null);
+
+        if (adminToDeleteOptional.isPresent()){
+            AdminJpa adminToDelete = adminToDeleteOptional.get();
+            adminToDelete.setDeletedAt(deletedAt);
+            this.adminsRepository.save(adminToDelete);
+        }
+
     }
 }

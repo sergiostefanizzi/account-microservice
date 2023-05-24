@@ -2,8 +2,8 @@ package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotActivedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.ValidationCodeNotValidException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -48,64 +49,43 @@ public class AccountsService {
             throw new AccountNotFoundException("Bad request! Id is not valid");
         }
 
-        AccountJpa accountToRemove = this.accountsRepository.findById(accountId).orElseThrow(
+        AccountJpa accountToRemove = this.accountsRepository.findById(accountId)
+                .filter(accountJpa -> accountJpa.getDeletedAt() == null)
+                .orElseThrow(
                 () -> new AccountNotFoundException(accountId)
         );
-        //Non posso rimuovere un account gia' rimosso
-        if (accountToRemove.getDeletedAt() == null) {
-            accountToRemove.setDeletedAt(Timestamp.valueOf(LocalDateTime.now()));
-            this.accountsRepository.save(accountToRemove);
-        } else {
-            throw new AccountNotFoundException(accountId);
-        }
-
+        accountToRemove.setDeletedAt(Timestamp.valueOf(LocalDateTime.now()));
+        this.accountsRepository.save(accountToRemove);
 
     }
 
     @Transactional
     public Account update(Long accountId, AccountPatch accountToUpdate){
-        // TODO: controllo prima il campo
-        Optional<AccountJpa> optionalAccountJpa = this.accountsRepository.findById(accountId);
-        if (optionalAccountJpa.isPresent()){
-            AccountJpa accountJpa = optionalAccountJpa.get();
-            //non posso aggiornare un account eliminato
-            if (accountJpa.getDeletedAt() == null){
-                if (accountToUpdate.getName() != null)  accountJpa.setName(accountToUpdate.getName());
-                if (accountToUpdate.getSurname() != null)  accountJpa.setSurname(accountToUpdate.getSurname());
-                if (accountToUpdate.getGender() != null)  accountJpa.setGender(AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()));
-                if (accountToUpdate.getPassword() != null)  accountJpa.setPassword( accountToUpdate.getPassword());
-                accountJpa.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
-                AccountJpa updatedAccountJpa = this.accountsRepository.save(accountJpa);
-                return this.accountToJpaConverter.convertBack(updatedAccountJpa);
-            } else {
-                throw new AccountNotFoundException(accountId);
-            }
-        } else {
-            throw new AccountNotFoundException(accountId);
-        }
+        AccountJpa savedAccountJpa = this.accountsRepository.findById(accountId)
+                .filter(accountJpa -> accountJpa.getDeletedAt() == null) //non posso aggiornare un account eliminato
+                .orElseThrow(()-> new AccountNotFoundException(accountId));
+        // check perche' modifico solo i campi passati dalla patch
+        if (StringUtils.hasText(accountToUpdate.getName()))  savedAccountJpa.setName(accountToUpdate.getName());
+        if (StringUtils.hasText(accountToUpdate.getSurname()))  savedAccountJpa.setSurname(accountToUpdate.getSurname());
+        if (StringUtils.hasText(accountToUpdate.getGender().toString()))  savedAccountJpa.setGender(AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()));
+        if (StringUtils.hasText(accountToUpdate.getPassword()))  savedAccountJpa.setPassword( accountToUpdate.getPassword());
+        savedAccountJpa.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
+        AccountJpa updatedAccountJpa = this.accountsRepository.save(savedAccountJpa);
+        return this.accountToJpaConverter.convertBack(updatedAccountJpa);
+
     }
 
     @Transactional
     public void active(Long accountId, String validationCode){
-        Optional<AccountJpa> optionalAccountJpa = this.accountsRepository.findById(accountId);
+        AccountJpa accountJpaToActive = this.accountsRepository.findById(accountId)
+                .filter(accountJpa -> accountJpa.getValidationCode().equals(validationCode))
+                .orElseThrow(()-> new AccountNotActivedException(accountId));
 
-        if (optionalAccountJpa.isPresent()){
-            AccountJpa accountJpa = optionalAccountJpa.get();
-            if (accountJpa.getValidationCode().equals(validationCode)){
-                if (accountJpa.getValidatedAt() == null){
-                    accountJpa.setValidatedAt(Timestamp.valueOf(LocalDateTime.now()));
-                    this.accountsRepository.save(accountJpa);
-                }
-
-            }else {
-                throw new ValidationCodeNotValidException(validationCode);
-            }
-        }else{
-            throw  new AccountNotFoundException(accountId);
+        if (accountJpaToActive.getValidatedAt() == null) {
+            accountJpaToActive.setValidatedAt(Timestamp.valueOf(LocalDateTime.now()));
+            this.accountsRepository.save(accountJpaToActive);
         }
 
     }
-
-
 
 }

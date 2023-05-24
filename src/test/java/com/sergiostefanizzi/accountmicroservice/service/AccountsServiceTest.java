@@ -2,6 +2,7 @@ package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotActivedException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.ValidationCodeNotValidException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
@@ -113,6 +114,8 @@ class AccountsServiceTest {
         assertEquals(newAccount.getPassword(), savedAccount.getPassword());
         verify(this.accountsRepository, times(1)).findByEmail(newAccount.getEmail());
         verify(this.accountsRepository, times(1)).save(newAccountJpa);
+        verify(this.accountToJpaConverter, times(1)).convert(newAccount);
+        verify(this.accountToJpaConverter, times(1)).convertBack(savedAccountJpa);
     }
 
 
@@ -188,222 +191,59 @@ class AccountsServiceTest {
     }
 
     // UPDATE ACCOUNT
-    //TODO: modificare i test di update secondo la modifica in remove
+
     @Test
     void testUpdate_Success(){
+        AccountJpa accountJpaToUpdate = new AccountJpa(
+                "mario.rossi@gmail.com",
+                "Mario",
+                "Rossi",
+                LocalDate.of(1990,4,4),
+                AccountJpa.Gender.MALE,
+                "5434543jhkhjjh"
+        );
+        accountJpaToUpdate.setId(accountId);
+
         String newName = "Giuseppe";
         String newSurname = "Verdi";
         AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;
-        String newPassword = "43hg434j5g4";
-
-        AccountPatch accountToUpdate = new AccountPatch();
-        accountToUpdate.setName(newName);
-        accountToUpdate.setSurname(newSurname);
-        accountToUpdate.setGender(newGender);
-        accountToUpdate.setPassword(newPassword);
-
-        AccountJpa updatedAccountJpa = new AccountJpa(
-                oldAccountJpa.getEmail(),
-                accountToUpdate.getName(),
-                accountToUpdate.getSurname(),
-                oldAccountJpa.getBirthdate(),
-                AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()),
-                accountToUpdate.getPassword()
-        );
-        updatedAccountJpa.setId(accountId);
-
-        Account convertedUpdatedAccount = new Account(
-                updatedAccountJpa.getEmail(),
-                updatedAccountJpa.getBirthdate(),
-                Account.GenderEnum.valueOf(updatedAccountJpa.getGender().toString()),
-                updatedAccountJpa.getPassword()
-        );
-        convertedUpdatedAccount.setId(accountId);
-        convertedUpdatedAccount.setName(updatedAccountJpa.getName());
-        convertedUpdatedAccount.setSurname(updatedAccountJpa.getSurname());
-
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
-        when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
-
-        Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
-
-        assertEquals(accountId, updatedAccount.getId());
-        assertEquals(accountToUpdate.getName(), updatedAccount.getName());
-        assertEquals(accountToUpdate.getSurname(), updatedAccount.getSurname());
-        assertEquals(accountToUpdate.getGender().toString(), updatedAccount.getGender().toString());
-        assertEquals(accountToUpdate.getPassword(), updatedAccount.getPassword());
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
-        verify(this.accountToJpaConverter, times(1)).convertBack(updatedAccountJpa);
-    }
-
-    @Test
-    void testUpdate_Name_Success(){
-        String newName = "Giuseppe";
-
-        AccountPatch accountToUpdate = new AccountPatch();
-        accountToUpdate.setName(newName);
-
-        AccountJpa updatedAccountJpa = new AccountJpa(
-                oldAccountJpa.getEmail(),
-                accountToUpdate.getName(),
-                oldAccountJpa.getSurname(),
-                oldAccountJpa.getBirthdate(),
-                oldAccountJpa.getGender(),
-                oldAccountJpa.getPassword()
-        );
-        updatedAccountJpa.setId(accountId);
-
-        Account convertedUpdatedAccount = new Account(
-                updatedAccountJpa.getEmail(),
-                updatedAccountJpa.getBirthdate(),
-                Account.GenderEnum.valueOf(updatedAccountJpa.getGender().toString()),
-                updatedAccountJpa.getPassword()
-        );
-        convertedUpdatedAccount.setId(accountId);
-        convertedUpdatedAccount.setName(updatedAccountJpa.getName());
-        convertedUpdatedAccount.setSurname(updatedAccountJpa.getSurname());
-
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
-        when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
-
-        Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
-
-        assertEquals(accountId, updatedAccount.getId());
-        assertEquals(accountToUpdate.getName(), updatedAccount.getName());
-        assertEquals(oldAccountJpa.getSurname(), updatedAccount.getSurname());
-        assertEquals(oldAccountJpa.getGender().toString(), updatedAccount.getGender().toString());
-        assertEquals(oldAccountJpa.getPassword(), updatedAccount.getPassword());
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
-    }
-
-    @Test
-    void testUpdate_Surname_Success(){
-        String newSurname = "Verdi";
-
-        AccountPatch accountToUpdate = new AccountPatch();
-        accountToUpdate.setSurname(newSurname);
-
-        AccountJpa updatedAccountJpa = new AccountJpa(
-                oldAccountJpa.getEmail(),
-                oldAccountJpa.getName(),
-                accountToUpdate.getSurname(),
-                oldAccountJpa.getBirthdate(),
-                oldAccountJpa.getGender(),
-                oldAccountJpa.getPassword()
-        );
-        updatedAccountJpa.setId(accountId);
-
-        Account convertedUpdatedAccount = new Account(
-                updatedAccountJpa.getEmail(),
-                updatedAccountJpa.getBirthdate(),
-                Account.GenderEnum.valueOf(updatedAccountJpa.getGender().toString()),
-                updatedAccountJpa.getPassword()
-        );
-        convertedUpdatedAccount.setId(accountId);
-        convertedUpdatedAccount.setName(updatedAccountJpa.getName());
-        convertedUpdatedAccount.setSurname(updatedAccountJpa.getSurname());
-
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
-        when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
-
-        Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
-
-        assertEquals(accountId, updatedAccount.getId());
-        assertEquals(oldAccountJpa.getName(), updatedAccount.getName());
-        assertEquals(accountToUpdate.getSurname(), updatedAccount.getSurname());
-        assertEquals(oldAccountJpa.getGender().toString(), updatedAccount.getGender().toString());
-        assertEquals(oldAccountJpa.getPassword(), updatedAccount.getPassword());
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
-    }
-
-    @Test
-    void testUpdate_Gender_Success(){
-        AccountPatch.GenderEnum newGender = AccountPatch.GenderEnum.FEMALE;
-        AccountPatch accountToUpdate = new AccountPatch();
-        accountToUpdate.setGender(newGender);
-
-        AccountJpa updatedAccountJpa = new AccountJpa(
-                oldAccountJpa.getEmail(),
-                oldAccountJpa.getName(),
-                oldAccountJpa.getSurname(),
-                oldAccountJpa.getBirthdate(),
-                AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()),
-                oldAccountJpa.getPassword()
-        );
-        updatedAccountJpa.setId(accountId);
-
-        Account convertedUpdatedAccount = new Account(
-                updatedAccountJpa.getEmail(),
-                updatedAccountJpa.getBirthdate(),
-                Account.GenderEnum.valueOf(updatedAccountJpa.getGender().toString()),
-                updatedAccountJpa.getPassword()
-        );
-        convertedUpdatedAccount.setId(accountId);
-        convertedUpdatedAccount.setName(updatedAccountJpa.getName());
-        convertedUpdatedAccount.setSurname(updatedAccountJpa.getSurname());
-
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
-        when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
-
-        Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
-
-        assertEquals(accountId, updatedAccount.getId());
-        assertEquals(oldAccountJpa.getName(), updatedAccount.getName());
-        assertEquals(oldAccountJpa.getSurname(), updatedAccount.getSurname());
-        assertEquals(accountToUpdate.getGender().toString(), updatedAccount.getGender().toString());
-        assertEquals(oldAccountJpa.getPassword(), updatedAccount.getPassword());
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
-    }
-
-    @Test
-    void testUpdate_Password_Success(){
         String newPassword = "43hg434j5g4!";
 
         AccountPatch accountToUpdate = new AccountPatch();
+        accountToUpdate.setName(newName);
+        accountToUpdate.setSurname(newSurname);
+        accountToUpdate.setGender(newGender);
         accountToUpdate.setPassword(newPassword);
 
-        AccountJpa updatedAccountJpa = new AccountJpa(
-                oldAccountJpa.getEmail(),
-                oldAccountJpa.getName(),
-                oldAccountJpa.getSurname(),
-                oldAccountJpa.getBirthdate(),
-                oldAccountJpa.getGender(),
+        Account convertedUpdatedAccount = new Account(
+                accountJpaToUpdate.getEmail(),
+                accountJpaToUpdate.getBirthdate(),
+                Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()),
                 accountToUpdate.getPassword()
         );
-        updatedAccountJpa.setId(accountId);
-
-        Account convertedUpdatedAccount = new Account(
-                updatedAccountJpa.getEmail(),
-                updatedAccountJpa.getBirthdate(),
-                Account.GenderEnum.valueOf(updatedAccountJpa.getGender().toString()),
-                updatedAccountJpa.getPassword()
-        );
         convertedUpdatedAccount.setId(accountId);
-        convertedUpdatedAccount.setName(updatedAccountJpa.getName());
-        convertedUpdatedAccount.setSurname(updatedAccountJpa.getSurname());
+        convertedUpdatedAccount.setName(accountToUpdate.getName());
+        convertedUpdatedAccount.setSurname(accountToUpdate.getSurname());
 
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(oldAccountJpa));
-        when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(updatedAccountJpa);
-        when(this.accountToJpaConverter.convertBack(updatedAccountJpa)).thenReturn(convertedUpdatedAccount);
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountJpaToUpdate));
+        when(this.accountsRepository.save(accountJpaToUpdate)).thenReturn(accountJpaToUpdate);
+        when(this.accountToJpaConverter.convertBack(accountJpaToUpdate)).thenReturn(convertedUpdatedAccount);
 
         Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
 
+        log.info("updated at "+accountJpaToUpdate.getUpdatedAt());
+
+        assertNotNull(accountJpaToUpdate.getUpdatedAt());
         assertEquals(accountId, updatedAccount.getId());
-        assertEquals(oldAccountJpa.getName(), updatedAccount.getName());
-        assertEquals(oldAccountJpa.getSurname(), updatedAccount.getSurname());
-        assertEquals(oldAccountJpa.getGender().toString(), updatedAccount.getGender().toString());
+        assertEquals(accountToUpdate.getName(), updatedAccount.getName());
+        assertEquals(accountToUpdate.getSurname(), updatedAccount.getSurname());
+        assertEquals(accountToUpdate.getGender().toString(), updatedAccount.getGender().toString());
         assertEquals(accountToUpdate.getPassword(), updatedAccount.getPassword());
         verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
+        verify(this.accountsRepository, times(1)).save(accountJpaToUpdate);
+        verify(this.accountToJpaConverter, times(1)).convertBack(accountJpaToUpdate);
     }
+
 
     @Test
     void testUpdate_AccountNotFound_Failed(){
@@ -416,15 +256,16 @@ class AccountsServiceTest {
         verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
     }
 
+
     @Test
     void testUpdate_RemovedAccount_Failed(){
         AccountJpa removedAccountJpa = new AccountJpa(
-                oldAccountJpa.getEmail(),
-                oldAccountJpa.getName(),
-                oldAccountJpa.getSurname(),
-                oldAccountJpa.getBirthdate(),
-                oldAccountJpa.getGender(),
-                oldAccountJpa.getPassword()
+                "mario.rossi@gmail.com",
+                "Mario",
+                "Rossi",
+                LocalDate.of(1990,4,4),
+                AccountJpa.Gender.MALE,
+                "5434543jhkhjjh!"
         );
         removedAccountJpa.setId(accountId);
         removedAccountJpa.setDeletedAt(Timestamp.valueOf(LocalDateTime.of(2022,5,4,12,30,15)));
@@ -442,48 +283,65 @@ class AccountsServiceTest {
 
     @Test
     void testActive_Success(){
-        log.info(savedAccountJpa.getValidatedAt() == null ? "NULL" : savedAccountJpa.getValidatedAt().toString());
-        Timestamp validation = savedAccountJpa.getValidatedAt();
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(savedAccountJpa));
+        AccountJpa accountJpaToActive = new AccountJpa(
+                newAccountJpa.getEmail(),
+                newAccountJpa.getName(),
+                newAccountJpa.getSurname(),
+                newAccountJpa.getBirthdate(),
+                newAccountJpa.getGender(),
+                newAccountJpa.getPassword());
+        accountJpaToActive.setValidationCode(validationCode.toString());
+        accountJpaToActive.setId(accountId);
 
+        log.info(accountJpaToActive.getValidatedAt() == null ? "NULL" : accountJpaToActive.getValidatedAt().toString());
+
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountJpaToActive));
 
         this.accountsService.active(accountId, validationCode.toString());
 
-        log.info(savedAccountJpa.getValidatedAt() == null ? "NULL" : savedAccountJpa.getValidatedAt().toString());
+        log.info(accountJpaToActive.getValidatedAt() == null ? "NULL" : accountJpaToActive.getValidatedAt().toString());
 
 
-        assertNotEquals(validation, savedAccountJpa.getValidatedAt());
-        assertEquals(validationCode.toString(), savedAccountJpa.getValidationCode());
+        assertEquals(validationCode.toString(), accountJpaToActive.getValidationCode());
         verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(1)).save(savedAccountJpa);
+        verify(this.accountsRepository, times(1)).save(accountJpaToActive);
 
     }
 
     @Test
     void testActive_AlreadyValidated_Success(){
-        savedAccountJpa.setValidatedAt(Timestamp.valueOf(LocalDateTime.of(2022,1,2,12,15,0)));
-        log.info(savedAccountJpa.getValidatedAt() == null ? "NULL" : savedAccountJpa.getValidatedAt().toString());
-        Timestamp validation = savedAccountJpa.getValidatedAt();
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(savedAccountJpa));
+        AccountJpa accountJpaToActive = new AccountJpa(
+                newAccountJpa.getEmail(),
+                newAccountJpa.getName(),
+                newAccountJpa.getSurname(),
+                newAccountJpa.getBirthdate(),
+                newAccountJpa.getGender(),
+                newAccountJpa.getPassword());
+        accountJpaToActive.setValidationCode(validationCode.toString());
+        accountJpaToActive.setId(accountId);
+        accountJpaToActive.setValidatedAt(Timestamp.valueOf(LocalDateTime.of(2022,1,2,12,15,0)));
 
+        log.info(accountJpaToActive.getValidatedAt() == null ? "NULL" : accountJpaToActive.getValidatedAt().toString());
+
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountJpaToActive));
 
         this.accountsService.active(accountId, validationCode.toString());
 
-        log.info(savedAccountJpa.getValidatedAt() == null ? "NULL" : savedAccountJpa.getValidatedAt().toString());
+        log.info(accountJpaToActive.getValidatedAt() == null ? "NULL" : accountJpaToActive.getValidatedAt().toString());
 
-        assertEquals(validation, savedAccountJpa.getValidatedAt());
-        assertEquals(validationCode.toString(), savedAccountJpa.getValidationCode());
+
+        assertEquals(validationCode.toString(), accountJpaToActive.getValidationCode());
         verify(this.accountsRepository, times(1)).findById(accountId);
-        //dato che validatedAt è diverso da null, quindi l'account è già stato validato, save non sarà chiamata
-        verify(this.accountsRepository, times(0)).save(savedAccountJpa);
+        verify(this.accountsRepository, times(0)).save(accountJpaToActive);
 
     }
 
+
     @Test
-    void testActive_AccountNotFound_Failed(){
+    void testActive_NotFound_NotActivated_Failed(){
         when(this.accountsRepository.findById(accountId)).thenReturn(Optional.empty());
 
-        assertThrows(AccountNotFoundException.class,
+        assertThrows(AccountNotActivedException.class,
                 ()->{
                     this.accountsService.active(accountId, validationCode.toString());
                 }
@@ -495,16 +353,28 @@ class AccountsServiceTest {
     }
 
     @Test
-    void testActive_ValidationCode_NotValid_Failed(){
-        UUID invalidCode = UUID.randomUUID();
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.ofNullable(savedAccountJpa));
+    void testActive_ErrorOn_ValidationCode_NotActivated_Failed(){
+        AccountJpa accountJpaToActive = new AccountJpa(
+                newAccountJpa.getEmail(),
+                newAccountJpa.getName(),
+                newAccountJpa.getSurname(),
+                newAccountJpa.getBirthdate(),
+                newAccountJpa.getGender(),
+                newAccountJpa.getPassword());
 
-        assertNotEquals(invalidCode.toString(), savedAccountJpa.getValidationCode());
-        assertThrows(ValidationCodeNotValidException.class,
+        accountJpaToActive.setValidationCode(validationCode.toString());
+        accountJpaToActive.setId(accountId);
+
+        UUID newValidationCode = UUID.randomUUID();
+
+        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountJpaToActive));
+
+        assertThrows(AccountNotActivedException.class,
                 ()->{
-                    this.accountsService.active(accountId, invalidCode.toString());
+                    this.accountsService.active(accountId, newValidationCode.toString());
                 }
         );
+
         verify(this.accountsRepository, times(1)).findById(accountId);
         verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
 

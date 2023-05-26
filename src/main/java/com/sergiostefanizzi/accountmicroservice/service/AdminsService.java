@@ -1,16 +1,14 @@
 package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
-import com.sergiostefanizzi.accountmicroservice.controller.converter.AdminJpaToAdminConverter;
+import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountJpaToAdminConverter;
+
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminAlreadyCreatedException;
-
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
-import com.sergiostefanizzi.accountmicroservice.repository.AdminsRepository;
 import com.sergiostefanizzi.accountmicroservice.repository.model.AccountJpa;
-import com.sergiostefanizzi.accountmicroservice.repository.model.AdminJpa;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,20 +17,17 @@ import org.springframework.stereotype.Service;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class AdminsService {
     @Autowired
-    private AdminsRepository adminsRepository;
-    @Autowired
     private AccountsRepository accountsRepository;
     @Autowired
     private AccountToJpaConverter accountToJpaConverter;
     @Autowired
-    private AdminJpaToAdminConverter adminsToJpaConverter;
+    private AccountJpaToAdminConverter accountJpaToAdminConverter;
 
     @Transactional
     public List<Account> findAll(Boolean removedAccount) {
@@ -54,14 +49,14 @@ public class AdminsService {
                 () -> new AccountNotFoundException(accountId)
         );
         //controllo che l'account non sia gia' un admin
-        if (this.adminsRepository.findById(accountId).isPresent()){
+        if (adminToBe.getAdmin()){
             throw new AdminAlreadyCreatedException(accountId);
         }
+        adminToBe.setAdmin(true);
         //salvo l'account come admin
-        return this.adminsToJpaConverter.convert(
-                this.adminsRepository.save(
-                new AdminJpa(Timestamp.valueOf(LocalDateTime.now()),adminToBe)
-        ));
+        return this.accountJpaToAdminConverter.convert(
+                this.accountsRepository.save(adminToBe)
+        );
     }
 
     public void remove(Long accountId) {
@@ -74,15 +69,7 @@ public class AdminsService {
         Timestamp deletedAt = Timestamp.valueOf(LocalDateTime.now());
         accountToDelete.setDeletedAt(deletedAt);
         this.accountsRepository.save(accountToDelete);
-
-        Optional<AdminJpa> adminToDeleteOptional = this.adminsRepository.findById(accountId)
-                .filter(adminJpa -> adminJpa.getDeletedAt() == null);
-
-        if (adminToDeleteOptional.isPresent()){
-            AdminJpa adminToDelete = adminToDeleteOptional.get();
-            adminToDelete.setDeletedAt(deletedAt);
-            this.adminsRepository.save(adminToDelete);
-        }
-
     }
+
+
 }

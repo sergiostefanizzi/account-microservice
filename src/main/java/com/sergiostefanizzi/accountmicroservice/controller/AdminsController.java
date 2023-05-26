@@ -29,6 +29,7 @@ public class AdminsController implements AdminsApi {
         return AdminsApi.super.getRequest();
     }
 
+
     @Override
     public ResponseEntity<Admin> addAdminById(Long accountId) {
         Admin savedAdmin = this.adminsService.save(accountId);

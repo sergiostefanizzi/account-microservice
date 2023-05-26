@@ -91,6 +91,7 @@ class AdminsControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Conflict! Admin with id "+accountId+" already created!"));
     }
+
     @Test
     void deleteAdminById_Then_204() throws Exception{
         Long accountId = 1L;
@@ -120,7 +121,6 @@ class AdminsControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Account with id "+accountId+" not found!"));
     }
-
 
     //FIND ALL ACCOUNTS
     @Test

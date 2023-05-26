@@ -46,6 +46,9 @@ public class AccountJpa {
     @Column(name="validation_code", length = 36)
     @Size(min = 36)
     private String validationCode;
+    @Column(name = "is_admin", nullable = false)
+    @NotNull
+    private Boolean isAdmin;
     @Column(name="validated_at")
     @PastOrPresent
     private Timestamp validatedAt;
@@ -58,9 +61,7 @@ public class AccountJpa {
     @Column(name = "Version")
     @Version
     private Long version;
-    @OneToOne(mappedBy = "account")
-    @JsonBackReference
-    private AdminJpa admin;
+
 
     public AccountJpa(){}
 
@@ -71,6 +72,7 @@ public class AccountJpa {
         this.birthdate = birthdate;
         this.gender = gender;
         this.password = password;
+        this.isAdmin = false;
     }
 
     public Long getId() {
@@ -169,11 +171,11 @@ public class AccountJpa {
         this.version = version;
     }
 
-    public AdminJpa getAdmin() {
-        return admin;
+    public Boolean getAdmin() {
+        return isAdmin;
     }
 
-    public void setAdmin(AdminJpa admin) {
-        this.admin = admin;
+    public void setAdmin(Boolean admin) {
+        isAdmin = admin;
     }
 }

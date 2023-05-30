@@ -146,7 +146,7 @@ paths:
   
  
   /admins/{accountId}:
-    post:
+    put:
       tags:
         - admins
       summary: Create an admin, NOT IMPLEMENTED

@@ -327,6 +327,7 @@ components:
           pattern: '^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$'
           writeOnly: true
           description: Account Password
+          x-nonnull: '@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)'
       required:
         - email
         - birthdate

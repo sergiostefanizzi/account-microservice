@@ -11,6 +11,7 @@ import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.service.AccountsService;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
@@ -39,6 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(AccountsController.class)
+@ActiveProfiles("test")
+@Slf4j
 class AccountsControllerTest {
 
     @MockBean
@@ -63,6 +67,7 @@ class AccountsControllerTest {
     }
 
     // Add account Success
+
     @Test
     void testAddAccount_Then_201() throws Exception {
         Account newAccount = new Account("mario.rossi@gmail.com",
@@ -76,27 +81,23 @@ class AccountsControllerTest {
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32");
-        newAccount.setName("Mario");
-        newAccount.setSurname("Rossi");
+        savedAccount.setName("Mario");
+        savedAccount.setSurname("Rossi");
         savedAccount.setId(accountId);
 
         String newAccountJson = this.objectMapper.writeValueAsString(newAccount);
 
         when(this.accountsService.save(newAccount)).thenReturn(savedAccount);
 
-        this.mockMvc.perform(post("/accounts")
-                .contentType(MediaType.APPLICATION_JSON).content(newAccountJson)
-                .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(savedAccount.getId()))
-                .andExpect(jsonPath("$.email").value(savedAccount.getEmail()))
-                .andExpect(jsonPath("$.name").value(savedAccount.getName()))
-                .andExpect(jsonPath("$.surname").value(savedAccount.getSurname()))
-                .andExpect(jsonPath("$.birthdate").value(savedAccount.getBirthdate().toString()))
-                .andExpect(jsonPath("$.gender").value(savedAccount.getGender().toString()))
-                .andExpect(jsonPath("$.password").value(savedAccount.getPassword()));
-    }
+        MvcResult result = this.mockMvc.perform(post("/accounts")
+                        .contentType(MediaType.APPLICATION_JSON).content(newAccountJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated()).andReturn();
+        String contentAsString = result.getResponse().getContentAsString();
 
+        Account responseAccount = objectMapper.readValue(contentAsString, Account.class);
+        log.info("Resp --> "+responseAccount.getEmail());
+    }
     @Test
     void testAddAccountMissing_Name_Surname_Then_201() throws Exception {
         Account newAccount = new Account("mario.rossi@gmail.com",

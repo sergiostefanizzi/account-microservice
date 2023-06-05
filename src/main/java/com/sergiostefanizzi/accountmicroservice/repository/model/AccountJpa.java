@@ -23,11 +23,11 @@ public class AccountJpa {
     @Email
     @Size(max = 320)
     private String email;
-    @Column(name="name", nullable = false, length = 50)
+    @Column(name="name", length = 50)
     @Size(max = 50)
     @Pattern(regexp = "^[a-zA-Z]+$")
     private String name;
-    @Column(name="surname", nullable = false, length = 50)
+    @Column(name="surname", length = 50)
     @Size(max = 50)
     @Pattern(regexp = "^[a-zA-Z]+$")
     private String surname;

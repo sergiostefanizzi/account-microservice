@@ -5,10 +5,10 @@ spring:
   datasource:
     generate-unique-name: false
     name: 'social-account'
-    url: 'jdbc:h2:file:./social-account-db'
+    url: ${spring.datasource.url}
   jpa:
     hibernate:
-      ddl-auto: 'update'
+      ddl-auto: ${spring.datasource.jpa.ddl}
       dialect: 'org.hibernate.dialect.H2Dialect'
 logging:
   level:
@@ -18,34 +18,6 @@ logging:
         type:
           descriptor:
             sql:
-              BasicBinder: 'TRACE'
+              BasicBinder: ${log.hibernate.level}
       springframework:
-        jdbc: 'DEBUG'
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-  h2:
-    console:
-      enable: true
-  datasource:
-    generate-unique-name: false
-    name: 'social-account-test'
-    url: 'jdbc:h2:file:./social-account-db-test'
-  jpa:
-    hibernate:
-      ddl-auto: 'create-drop'
-      dialect: 'org.hibernate.dialect.H2Dialect'
-logging:
-  level:
-    org:
-      hibernate:
-        SQL: 'DEBUG'
-        type:
-          descriptor:
-            sql:
-              BasicBinder: 'TRACE'
-      springframework:
-        jdbc: 'DEBUG'
+        jdbc: ${log.spring.level}

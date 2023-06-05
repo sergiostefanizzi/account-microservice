@@ -5,7 +5,6 @@ import jakarta.validation.ConstraintValidatorContext;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.Optional;
 
 public class AdultValidator implements ConstraintValidator<Adult, LocalDate> {
     @Override

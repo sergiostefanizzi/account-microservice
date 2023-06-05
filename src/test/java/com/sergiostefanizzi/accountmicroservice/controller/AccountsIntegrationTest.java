@@ -9,22 +9,16 @@ import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.repository.model.AccountJpa;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.annotation.Before;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.client.MockMvcClientHttpRequestFactory;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 
 import java.time.LocalDate;
@@ -32,10 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.in;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -64,7 +60,7 @@ public class AccountsIntegrationTest {
     // Add account Success
     @Test
     public void testAddAccount_Then_201(){
-        Account newAccount = new Account("mario.rossi888@gmail.com",
+        Account newAccount = new Account("mario.rossi@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -86,7 +82,7 @@ public class AccountsIntegrationTest {
 
     @Test
     void testAddAccountMissing_Name_Surname_Then_201(){
-        Account newAccount = new Account("mario.rossi29@gmail.com",
+        Account newAccount = new Account("mario.rossi2@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -106,7 +102,7 @@ public class AccountsIntegrationTest {
     @Test
     void testAddAccount_AlreadyCreated_Then_409() throws Exception {
         // First, create the account
-        Account newAccount0 = new Account("mario.rossi@gmail.com",
+        Account newAccount0 = new Account("mario.rossi3@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -116,7 +112,7 @@ public class AccountsIntegrationTest {
         this.testRestTemplate.postForEntity(this.baseUrl, newAccount0, Account.class);
 
         // Then try to add an account with the same email of the previous one
-        Account newAccount = new Account("mario.rossi@gmail.com",
+        Account newAccount = new Account("mario.rossi3@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -194,7 +190,7 @@ public class AccountsIntegrationTest {
 
     @Test
     void testAddAccount_Birthdate_TypeError_Then_400() throws Exception{
-        Account newAccount = new Account("mario.rossi@gmail.com",
+        Account newAccount = new Account("mario.rossi4@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -222,7 +218,7 @@ public class AccountsIntegrationTest {
 
     @Test
     void testAddAccount_Birthdate_UnderAge_Then_400() throws Exception{
-        Account newAccount = new Account("mario.rossi7@gmail.com",
+        Account newAccount = new Account("mario.rossi4@gmail.com",
                 LocalDate.of(2010,2,2),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -242,7 +238,7 @@ public class AccountsIntegrationTest {
 
     @Test
     void testAddAccount_Gender_TypeError_Then_400() throws Exception{
-        Account newAccount = new Account("mario.rossi@gmail.com",
+        Account newAccount = new Account("mario.rossi4@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -270,7 +266,7 @@ public class AccountsIntegrationTest {
     // Delete Account Success
     @Test
     void testDeleteAccountById_Then_204() throws Exception{
-        Account newAccount = new Account("mario.rossi2@gmail.com",
+        Account newAccount = new Account("mario.rossi4@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -311,10 +307,10 @@ public class AccountsIntegrationTest {
     }
 
     // Update Account SUCCESS
-    /*
+
     @Test
     void testUpdateAccountBy_Then_200() throws Exception{
-        Account newAccount = new Account("mario.rossi3@gmail.com",
+        Account newAccount = new Account("mario.rossi5@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -327,6 +323,7 @@ public class AccountsIntegrationTest {
         assertNotNull(savedAccount);
         assertEquals(HttpStatus.CREATED, responsePost.getStatusCode());
         log.info("savedAccount --> "+savedAccount.getEmail());
+        log.info("savedAccount --> "+savedAccount.getId());
 
         AccountPatch accountPatchToUpdate = new AccountPatch();
         accountPatchToUpdate.setName("Marietta");
@@ -335,21 +332,186 @@ public class AccountsIntegrationTest {
         accountPatchToUpdate.setPassword("hhh3h!d2h234h4");
 
 
-        String accountPatchToUpdateJSON = this.objectMapper.writeValueAsString(accountPatchToUpdate);
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
+        Account updatedAccount = this.testRestTemplate.patchForObject(this.baseUrl+"/"+savedAccount.getId(),accountPatchToUpdate, Account.class);
+        //ResponseEntity<Account> responsePatch = this.testRestTemplate.exchange(this.baseUrl+"/"+savedAccount.getId(), HttpMethod.PATCH, request , Account.class);
 
-        this.mockMvc.perform(patch("/accounts/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(accountPatchToUpdateJSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(savedAccount.getId()))
-                .andExpect(jsonPath("$.email").value(savedAccount.getEmail()))
-                .andExpect(jsonPath("$.name").value(accountPatchToUpdate.getName()))
-                .andExpect(jsonPath("$.surname").value(accountPatchToUpdate.getSurname()))
-                .andExpect(jsonPath("$.birthdate").value(savedAccount.getBirthdate().toString()))
-                .andExpect(jsonPath("$.gender").value(accountPatchToUpdate.getGender().toString()));
+        //Account updatedAccount = responsePatch.getBody();
 
+        assertNotNull(updatedAccount);
+        assertEquals(savedAccount.getId(),updatedAccount.getId());
+        assertEquals(savedAccount.getEmail(),updatedAccount.getEmail());
+        assertEquals(accountPatchToUpdate.getName(),updatedAccount.getName());
+        assertEquals(accountPatchToUpdate.getSurname(),updatedAccount.getSurname());
+        assertEquals(accountPatchToUpdate.getGender().toString(),updatedAccount.getGender().toString());
+        assertEquals(savedAccount.getBirthdate().toString(),updatedAccount.getBirthdate().toString());
+        assertEquals(savedAccount.getPassword(),updatedAccount.getPassword());
+
+        log.info("Account Patch --> "+ updatedAccount.getName());
+    }
+    // Update Account Failed
+    @Test
+    void testUpdateAccountById_Then_404() throws Exception{
+        AccountPatch accountPatchToUpdate = new AccountPatch();
+
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl + "/1000", HttpMethod.PATCH, request, String.class);
+        String error = "Account with id 1000 not found!";
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals(error, node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
+    }
+    @Test
+    void testUpdateAccountById_Then_400() throws Exception {
+
+        AccountPatch accountPatchToUpdate = new AccountPatch();
+        accountPatchToUpdate.setName("Marietta");
+        accountPatchToUpdate.setSurname("Verdi");
+        accountPatchToUpdate.setGender(AccountPatch.GenderEnum.FEMALE);
+        accountPatchToUpdate.setPassword("hhh3h!d2h234h4");
+
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl + "/rgfd", HttpMethod.PATCH, request, String.class);
+        String error = "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'; For input string: \"rgfd\"";
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(error, node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
     }
 
-     */
+    @Test
+    void testUpdateAccountById_Invalid_NameSurnamePassword_Then_400() throws Exception{
+        Account newAccount = new Account("mario.rossi5@gmail.com",
+                LocalDate.of(1990,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        newAccount.setName("Mario");
+        newAccount.setSurname("Rossi");
+
+
+        ResponseEntity<Account> responsePost = this.testRestTemplate.postForEntity(this.baseUrl, newAccount, Account.class);
+
+        Account savedAccount = responsePost.getBody();
+        assertNotNull(savedAccount);
+        assertEquals(HttpStatus.CREATED, responsePost.getStatusCode());
+        log.info("savedAccount --> "+savedAccount.getEmail());
+
+        log.info("savedAccount --> "+savedAccount.getId());
+
+        //account con campi aggiornati
+        AccountPatch accountPatchToUpdate = new AccountPatch();
+        accountPatchToUpdate.setName("M4");
+        accountPatchToUpdate.setSurname("R5");
+        accountPatchToUpdate.setGender(AccountPatch.GenderEnum.valueOf(newAccount.getGender().toString()));
+        accountPatchToUpdate.setPassword("hhhvoadsdfsdf");
+
+
+        //converto l'account che voglio aggiornare in formato json
+
+        List<String> errors = new ArrayList<>();
+        errors.add("password must match \"^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$\"");
+        errors.add("name must match \"^[a-zA-Z]+$\"");
+        errors.add("surname must match \"^[a-zA-Z]+$\"");
+
+
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/"+savedAccount.getId(),HttpMethod.PATCH,request, String.class);
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(errors.size() ,node.get("error").size());
+        for (JsonNode objNode : node.get("error")) {
+            assertTrue(errors.contains(objNode.asText()));
+            log.info("Error -> "+objNode.asText());
+        }
+    }
+
+    @Test
+    void testUpdateAccountById_Invalid_Gender_Then_400() throws Exception{
+        Account newAccount = new Account("mario.rossi5@gmail.com",
+                LocalDate.of(1990,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        newAccount.setName("Mario");
+        newAccount.setSurname("Rossi");
+
+
+        ResponseEntity<Account> responsePost = this.testRestTemplate.postForEntity(this.baseUrl, newAccount, Account.class);
+
+        Account savedAccount = responsePost.getBody();
+        assertNotNull(savedAccount);
+        assertEquals(HttpStatus.CREATED, responsePost.getStatusCode());
+        log.info("savedAccount --> "+savedAccount.getEmail());
+
+        log.info("savedAccount --> "+savedAccount.getId());
+        AccountPatch accountPatchToUpdate = new AccountPatch();
+
+
+        JsonNode jsonNode = this.objectMapper.readTree(this.objectMapper.writeValueAsString(accountPatchToUpdate));
+        ((ObjectNode) jsonNode).put("gender","female");
+        String accountToUpdateJson = this.objectMapper.writeValueAsString(jsonNode);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>(accountToUpdateJson,headers);
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/"+savedAccount.getId(),HttpMethod.PATCH,request, String.class);
+
+        String error = "JSON parse error: Cannot construct instance of `com.sergiostefanizzi.accountmicroservice.model.AccountPatch$GenderEnum`, problem: Unexpected value 'female'";
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(error, node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
+    }
+
+    @Test
+    void testUpdateAccountById_FieldsSizeError_Then_400() throws Exception{
+        Account newAccount = new Account("mario.rossi5@gmail.com",
+                LocalDate.of(1990,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        newAccount.setName("Mario");
+        newAccount.setSurname("Rossi");
+
+
+        ResponseEntity<Account> responsePost = this.testRestTemplate.postForEntity(this.baseUrl, newAccount, Account.class);
+
+        Account savedAccount = responsePost.getBody();
+        assertNotNull(savedAccount);
+        assertEquals(HttpStatus.CREATED, responsePost.getStatusCode());
+        log.info("savedAccount --> "+savedAccount.getEmail());
+
+        log.info("savedAccount --> "+savedAccount.getId());
+
+        //account con campi aggiornati
+        AccountPatch accountPatchToUpdate = new AccountPatch();
+        accountPatchToUpdate.setName("M");
+        accountPatchToUpdate.setSurname("R");
+        accountPatchToUpdate.setPassword("h3!");
+
+
+        //converto l'account che voglio aggiornare in formato json
+
+        List<String> errors = new ArrayList<>();
+        errors.add("password must match \"^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$\"");
+        errors.add("password size must be between 8 and 255");
+        errors.add("name size must be between 2 and 50");
+        errors.add("surname size must be between 2 and 50");
+
+
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/"+savedAccount.getId(),HttpMethod.PATCH,request, String.class);
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(errors.size() ,node.get("error").size());
+        for (JsonNode objNode : node.get("error")) {
+            assertTrue(errors.contains(objNode.asText()));
+            log.info("Error -> "+objNode.asText());
+        }
+    }
+
+    // Account activation SUCCESS
 }

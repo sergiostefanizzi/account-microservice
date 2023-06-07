@@ -74,6 +74,7 @@ public class AccountsIntegrationTest {
         assertEquals(newAccount.getSurname(),savedAccount.getSurname());
         assertEquals(newAccount.getBirthdate(),savedAccount.getBirthdate());
         assertEquals(newAccount.getGender(),savedAccount.getGender());
+        log.info("ID --> "+savedAccount.getId());
     }
 
     @Test
@@ -306,7 +307,7 @@ public class AccountsIntegrationTest {
 
     @Test
     void testUpdateAccountBy_Then_200() throws Exception{
-        Account newAccount = new Account("mario.rossi5@gmail.com",
+        Account newAccount = new Account("mario.rossi8@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -424,7 +425,7 @@ public class AccountsIntegrationTest {
 
     @Test
     void testUpdateAccountById_Invalid_Gender_Then_400() throws Exception{
-        Account newAccount = new Account("mario.rossi5@gmail.com",
+        Account newAccount = new Account("mario.rossi6@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -461,7 +462,7 @@ public class AccountsIntegrationTest {
 
     @Test
     void testUpdateAccountById_FieldsSizeError_Then_400() throws Exception{
-        Account newAccount = new Account("mario.rossi5@gmail.com",
+        Account newAccount = new Account("mario.rossi7@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -510,7 +511,7 @@ public class AccountsIntegrationTest {
 
     @Test
     void testActivateAccountById_Then_204() throws Exception{
-        Account newAccount = new Account("mario.rossi6@gmail.com",
+        Account newAccount = new Account("mario.rossi10@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -538,7 +539,7 @@ public class AccountsIntegrationTest {
     void testActivateAccountById_NotWellFormatted_Then_400() throws Exception{
         String validationCode = UUID.randomUUID().toString();
         String invalidValidationCode = validationCode.substring(0,validationCode.length()-1);
-        Account newAccount = new Account("mario.rossi6@gmail.com",
+        Account newAccount = new Account("mario.rossi11@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
@@ -569,7 +570,7 @@ public class AccountsIntegrationTest {
     @Test
     void testActivateAccountById_Invalid_Code_Then_400() throws Exception{
         String invalidValidationCode = UUID.randomUUID().toString();
-        Account newAccount = new Account("mario.rossi6@gmail.com",
+        Account newAccount = new Account("mario.rossi9@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");

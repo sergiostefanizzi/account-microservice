@@ -53,7 +53,7 @@ class AdminsControllerTest {
 
         when(this.adminsService.save(accountId)).thenReturn(newAdmin);
 
-        this.mockMvc.perform(post("/admins/{accountId}",accountId)
+        this.mockMvc.perform(put("/admins/{accountId}",accountId)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(newAdmin.getId()));
@@ -61,7 +61,7 @@ class AdminsControllerTest {
 
     @Test
     void testAddAdminById_Then_400() throws Exception{
-        this.mockMvc.perform(post("/admins/{accountId}","notLong")
+        this.mockMvc.perform(put("/admins/{accountId}","notLong")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").isNotEmpty());
@@ -73,7 +73,7 @@ class AdminsControllerTest {
 
         when(this.adminsService.save(accountId)).thenThrow(new AccountNotFoundException(accountId));
 
-        this.mockMvc.perform(post("/admins/{accountId}",accountId)
+        this.mockMvc.perform(put("/admins/{accountId}",accountId)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof AccountNotFoundException))
@@ -86,7 +86,7 @@ class AdminsControllerTest {
 
         when(this.adminsService.save(accountId)).thenThrow(new AdminAlreadyCreatedException(accountId));
 
-        this.mockMvc.perform(post("/admins/{accountId}",accountId)
+        this.mockMvc.perform(put("/admins/{accountId}",accountId)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Conflict! Admin with id "+accountId+" already created!"));

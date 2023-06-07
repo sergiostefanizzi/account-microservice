@@ -40,7 +40,7 @@ public class AdminsService {
                 .map(this.accountToJpaConverter::convertBack)
                 .collect(Collectors.toList());
     }
-
+    @Transactional
     public Admin save(Long accountId) {
         //controllo esistenza account
         AccountJpa adminToBe = this.accountsRepository.findById(accountId)
@@ -59,6 +59,7 @@ public class AdminsService {
         );
     }
 
+    @Transactional
     public void remove(Long accountId) {
         //controllo esistenza account
         AccountJpa accountToDelete = this.accountsRepository.findById(accountId)

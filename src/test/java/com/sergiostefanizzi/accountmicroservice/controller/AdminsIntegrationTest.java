@@ -237,6 +237,8 @@ public class AdminsIntegrationTest {
         log.info("Error -> "+node.get("error").asText());
     }
 
+
+
     void addAccountsList(){
         List<Account> accountList = new ArrayList<>();
         Account account1 = new Account(

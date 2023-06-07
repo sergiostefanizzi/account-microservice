@@ -11,8 +11,6 @@ info:
     name: Sergio Stefanizzi
 servers:
   - url: http://localhost:8080/api/v1
-    variables: {}
-    description: Development server
 tags:
   - name: accounts
     description: All about accounts
@@ -149,7 +147,7 @@ paths:
     put:
       tags:
         - admins
-      summary: Create an admin, NOT IMPLEMENTED
+      summary: Create an admin
       description: Create an admin
       operationId: addAdminById
       #security:

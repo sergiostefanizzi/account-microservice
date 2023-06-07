@@ -262,7 +262,8 @@ public class AccountsIntegrationTest {
     }
     // Delete Account Success
     @Test
-    void testDeleteAccountById_Then_204() throws Exception{
+    void
+    testDeleteAccountById_Then_204() throws Exception{
         Account newAccount = new Account("mario.rossi4@gmail.com",
                 LocalDate.of(1990,3,15),
                 Account.GenderEnum.MALE,

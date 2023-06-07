@@ -4,6 +4,7 @@ package com.sergiostefanizzi.accountmicroservice.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
@@ -18,19 +19,13 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
 
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
-import static org.hamcrest.Matchers.in;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -41,6 +36,7 @@ public class AccountsIntegrationTest {
     private int port;
 
     private String baseUrl = "http://localhost";
+
 
     @Autowired
     private TestRestTemplate testRestTemplate;
@@ -332,9 +328,7 @@ public class AccountsIntegrationTest {
         accountPatchToUpdate.setPassword("hhh3h!d2h234h4");
 
 
-        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
         Account updatedAccount = this.testRestTemplate.patchForObject(this.baseUrl+"/"+savedAccount.getId(),accountPatchToUpdate, Account.class);
-        //ResponseEntity<Account> responsePatch = this.testRestTemplate.exchange(this.baseUrl+"/"+savedAccount.getId(), HttpMethod.PATCH, request , Account.class);
 
         //Account updatedAccount = responsePatch.getBody();
 
@@ -505,7 +499,6 @@ public class AccountsIntegrationTest {
 
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(errors.size() ,node.get("error").size());
         for (JsonNode objNode : node.get("error")) {
             assertTrue(errors.contains(objNode.asText()));
@@ -514,4 +507,93 @@ public class AccountsIntegrationTest {
     }
 
     // Account activation SUCCESS
+
+    @Test
+    void testActivateAccountById_Then_204() throws Exception{
+        Account newAccount = new Account("mario.rossi6@gmail.com",
+                LocalDate.of(1990,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        newAccount.setName("Mario");
+        newAccount.setSurname("Rossi");
+
+
+        ResponseEntity<Account> responsePost = this.testRestTemplate.postForEntity(this.baseUrl, newAccount, Account.class);
+
+        Account savedAccount = responsePost.getBody();
+        assertNotNull(savedAccount);
+        assertEquals(HttpStatus.CREATED, responsePost.getStatusCode());
+        log.info("savedAccount --> "+savedAccount.getEmail());
+        log.info("savedAccount --> "+savedAccount.getId());
+
+        AccountJpa savedAccountJpa = this.accountsRepository.findById(savedAccount.getId()).orElseThrow(() -> new AccountNotFoundException(savedAccount.getId()));
+
+
+        ResponseEntity<Void> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}?validation_code={code}",HttpMethod.PUT, HttpEntity.EMPTY, Void.class, savedAccount.getId(),savedAccountJpa.getValidationCode());
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+    }
+
+    // Account activation Failed
+    @Test
+    void testActivateAccountById_NotWellFormatted_Then_400() throws Exception{
+        String validationCode = UUID.randomUUID().toString();
+        String invalidValidationCode = validationCode.substring(0,validationCode.length()-1);
+        Account newAccount = new Account("mario.rossi6@gmail.com",
+                LocalDate.of(1990,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        newAccount.setName("Mario");
+        newAccount.setSurname("Rossi");
+
+
+        ResponseEntity<Account> responsePost = this.testRestTemplate.postForEntity(this.baseUrl, newAccount, Account.class);
+
+        Account savedAccount = responsePost.getBody();
+        assertNotNull(savedAccount);
+        assertEquals(HttpStatus.CREATED, responsePost.getStatusCode());
+        log.info("savedAccount --> "+savedAccount.getEmail());
+        log.info("savedAccount --> "+savedAccount.getId());
+
+        String error = "activateAccountById.validationCode: must match \"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"";
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}?validation_code={code}",
+                HttpMethod.PUT, HttpEntity.EMPTY,
+                String.class,
+                savedAccount.getId(),
+                invalidValidationCode);
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(error, node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
+    }
+
+    @Test
+    void testActivateAccountById_Invalid_Code_Then_400() throws Exception{
+        String invalidValidationCode = UUID.randomUUID().toString();
+        Account newAccount = new Account("mario.rossi6@gmail.com",
+                LocalDate.of(1990,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        newAccount.setName("Mario");
+        newAccount.setSurname("Rossi");
+
+
+        ResponseEntity<Account> responsePost = this.testRestTemplate.postForEntity(this.baseUrl, newAccount, Account.class);
+
+        Account savedAccount = responsePost.getBody();
+        assertNotNull(savedAccount);
+        assertEquals(HttpStatus.CREATED, responsePost.getStatusCode());
+        log.info("savedAccount --> "+savedAccount.getEmail());
+        log.info("savedAccount --> "+savedAccount.getId());
+
+        String error = "Error during activation of the account!";
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}?validation_code={code}",
+                HttpMethod.PUT, HttpEntity.EMPTY,
+                String.class,
+                savedAccount.getId(),
+                invalidValidationCode);
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(error, node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
+    }
 }

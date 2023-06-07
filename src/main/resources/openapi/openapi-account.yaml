@@ -183,7 +183,7 @@ paths:
     delete:
       tags:
         - admins
-      summary: Remove an admin, blocco account
+      summary: Remove an admin, account blocking
       description: Remove an admin
       operationId: deleteAdminById
       #security:
@@ -427,7 +427,7 @@ components:
         error: 
           type: string
           minLength: 3
-          example: Resourse already created!
+          example: Resource already created!
     
     InternalServerError:
       type: object

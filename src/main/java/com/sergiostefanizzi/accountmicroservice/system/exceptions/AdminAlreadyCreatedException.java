@@ -1,4 +1,4 @@
-package com.sergiostefanizzi.accountmicroservice.controller.exceptions;
+package com.sergiostefanizzi.accountmicroservice.system.exceptions;
 
 public class AdminAlreadyCreatedException extends RuntimeException{
     public AdminAlreadyCreatedException(String message) {

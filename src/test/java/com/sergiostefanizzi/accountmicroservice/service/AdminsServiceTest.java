@@ -2,12 +2,12 @@ package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountJpaToAdminConverter;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
-import com.sergiostefanizzi.accountmicroservice.repository.model.AccountJpa;
+import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

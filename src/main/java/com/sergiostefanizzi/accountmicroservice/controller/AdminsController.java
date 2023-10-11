@@ -4,31 +4,22 @@ import com.sergiostefanizzi.accountmicroservice.api.AdminsApi;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.service.AdminsService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.context.request.NativeWebRequest;
+
+import org.springframework.web.bind.annotation.RestController;
+
 
 import java.util.List;
-import java.util.Optional;
 
-@Controller
+
+@RestController
+@RequiredArgsConstructor
+@Slf4j
 public class AdminsController implements AdminsApi {
     private final AdminsService adminsService;
-
-    @Autowired
-    public AdminsController(AdminsService adminsService) {
-        this.adminsService = adminsService;
-    }
-
-
-
-    @Override
-    public Optional<NativeWebRequest> getRequest() {
-        return AdminsApi.super.getRequest();
-    }
-
 
     @Override
     public ResponseEntity<Admin> addAdminById(Long accountId) {

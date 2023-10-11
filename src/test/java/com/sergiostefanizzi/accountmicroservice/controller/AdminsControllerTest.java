@@ -1,7 +1,7 @@
 package com.sergiostefanizzi.accountmicroservice.controller;
 
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AccountNotFoundException;
-import com.sergiostefanizzi.accountmicroservice.controller.exceptions.AdminAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.service.AdminsService;

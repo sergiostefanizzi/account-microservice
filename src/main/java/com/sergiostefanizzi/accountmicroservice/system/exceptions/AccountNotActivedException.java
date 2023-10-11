@@ -1,4 +1,4 @@
-package com.sergiostefanizzi.accountmicroservice.controller.exceptions;
+package com.sergiostefanizzi.accountmicroservice.system.exceptions;
 
 public class AccountNotActivedException extends RuntimeException{
     public AccountNotActivedException(String message) {

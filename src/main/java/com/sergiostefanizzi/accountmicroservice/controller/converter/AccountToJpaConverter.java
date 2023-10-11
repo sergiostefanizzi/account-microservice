@@ -1,9 +1,8 @@
 package com.sergiostefanizzi.accountmicroservice.controller.converter;
 
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.repository.model.AccountJpa;
+import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.data.annotation.Transient;
 import org.springframework.stereotype.Component;
 
 @Component

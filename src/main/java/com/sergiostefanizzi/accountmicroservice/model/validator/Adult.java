@@ -1,4 +1,4 @@
-package com.sergiostefanizzi.accountmicroservice.repository.model.validator;
+package com.sergiostefanizzi.accountmicroservice.model.validator;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

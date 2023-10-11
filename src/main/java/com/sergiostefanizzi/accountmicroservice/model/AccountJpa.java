@@ -17,9 +17,6 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @NoArgsConstructor(force = true)
 public class AccountJpa {
-    public enum Gender {
-        MALE,FEMALE
-    }
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name="id")
@@ -46,7 +43,7 @@ public class AccountJpa {
     @Column(name="gender", length = 6)
     @Enumerated(EnumType.STRING)
     @NonNull
-    private Gender gender;
+    private Account.GenderEnum gender;
     @Column(name="password", nullable = false)
     @NotBlank
     @Size(max = 255)

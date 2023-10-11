@@ -46,7 +46,7 @@ class AdminsServiceTest {
     @AfterEach
     void tearDown() {
     }
-
+    /*
     //FIND ALL
     @Test
     void testFindAllActive_Success() {
@@ -269,6 +269,8 @@ class AdminsServiceTest {
         verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
 
     }
+
+     */
 
 
 

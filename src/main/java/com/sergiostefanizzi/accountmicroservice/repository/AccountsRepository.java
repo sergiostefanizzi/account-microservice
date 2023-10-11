@@ -26,4 +26,6 @@ public interface AccountsRepository extends JpaRepository<AccountJpa, Long> {
 
     @Query("SELECT a FROM AccountJpa a WHERE a.validatedAt IS NOT NULL")
     List<AccountJpa> findAllActiveAndDeleted();
+
+
 }

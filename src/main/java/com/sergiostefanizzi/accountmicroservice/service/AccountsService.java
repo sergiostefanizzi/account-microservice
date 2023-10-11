@@ -56,7 +56,7 @@ public class AccountsService {
         // check perche' modifico solo i campi passati dalla patch
         if (StringUtils.hasText(accountToUpdate.getName()))  savedAccountJpa.setName(accountToUpdate.getName());
         if (StringUtils.hasText(accountToUpdate.getSurname()))  savedAccountJpa.setSurname(accountToUpdate.getSurname());
-        if (StringUtils.hasText(accountToUpdate.getGender().toString()))  savedAccountJpa.setGender(AccountJpa.Gender.valueOf(accountToUpdate.getGender().toString()));
+        if (StringUtils.hasText(accountToUpdate.getGender().toString()))  savedAccountJpa.setGender(Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()));
         if (StringUtils.hasText(accountToUpdate.getPassword()))  savedAccountJpa.setPassword( accountToUpdate.getPassword());
         savedAccountJpa.setUpdatedAt(LocalDateTime.now());
         return this.accountToJpaConverter.convertBack(

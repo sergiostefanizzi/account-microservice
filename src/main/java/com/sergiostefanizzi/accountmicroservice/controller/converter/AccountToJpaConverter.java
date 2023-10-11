@@ -9,18 +9,19 @@ import org.springframework.stereotype.Component;
 public class AccountToJpaConverter implements Converter<Account, AccountJpa> {
     @Override
     public AccountJpa convert(Account source) {
-        return new AccountJpa(source.getEmail(),
-                source.getName(),
-                source.getSurname(),
+        AccountJpa accountJpa = new AccountJpa(source.getEmail(),
                 source.getBirthdate(),
-                AccountJpa.Gender.valueOf(source.getGender().toString()),
+                source.getGender(),
                 source.getPassword());
+        if (source.getName() != null) accountJpa.setName(source.getName());
+        if (source.getSurname() != null) accountJpa.setSurname(source.getSurname());
+        return accountJpa;
     }
 
     public Account convertBack(AccountJpa source) {
         Account account = new Account(source.getEmail(),
                 source.getBirthdate(),
-                Account.GenderEnum.valueOf(source.getGender().toString()), null);
+                source.getGender(), null);
         account.setName(source.getName());
         account.setSurname(source.getSurname());
         account.setId(source.getId());

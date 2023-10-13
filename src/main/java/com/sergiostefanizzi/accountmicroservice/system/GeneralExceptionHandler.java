@@ -30,6 +30,15 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
 
+    @ExceptionHandler(NumberFormatException.class)
+    public ResponseEntity<Object> handleNumberFormatException(NumberFormatException ex, WebRequest request){
+        log.error(ex.getMessage(),ex);
+        String error = "ID is not valid!";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
     //post
     @ExceptionHandler(AccountAlreadyCreatedException.class)
     public ResponseEntity<Object> handleAccountAlreadyCreatedException(AccountAlreadyCreatedException ex, WebRequest request){

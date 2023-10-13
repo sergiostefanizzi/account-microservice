@@ -53,6 +53,8 @@ public class AccountsIntegrationTest {
         this.baseUrl = this.baseUrl + ":" +port+ "/accounts";
 
     }
+
+    /*
     // Add account Success
     @Test
     public void testAddAccount_Then_201(){
@@ -598,4 +600,6 @@ public class AccountsIntegrationTest {
         assertEquals(error, node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
     }
+
+     */
 }

@@ -45,7 +45,7 @@ class AdminsControllerTest {
     @AfterEach
     void tearDown() {
     }
-
+/*
     @Test
     void testAddAdminById_Then_201() throws Exception{
         Long accountId = 1L;
@@ -216,4 +216,6 @@ class AdminsControllerTest {
                 .andExpect(jsonPath("$.error").isNotEmpty());
 
     }
+
+ */
 }

@@ -303,12 +303,14 @@ components:
           maxLength: 50
           pattern: '^[a-zA-Z]+$'
           description: Name of the account owner
+          x-nonnull: '@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)'
         surname:
           type: string
           minLength: 2
           maxLength: 50
           pattern: '^[a-zA-Z]+$'
           description: Surname of the account owner
+          x-nonnull: '@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)'
         birthdate:
           type: string
           format: date

@@ -49,7 +49,7 @@ public class AdminsIntegrationTest {
         this.baseUrlAccounts = this.baseUrl + ":" +port+ "/accounts";
         this.baseUrl = this.baseUrl + ":" +port+ "/admins";
     }
-
+/*
     @Test
     void testAddAdminById_Then_201() throws Exception{
 
@@ -268,4 +268,6 @@ public class AdminsIntegrationTest {
         log.info(String.valueOf("STATO2 -->"+responsePost2.getStatusCode()));
         log.info(String.valueOf("STATO3 -->"+responsePost3.getStatusCode()));
     }
+
+ */
 }

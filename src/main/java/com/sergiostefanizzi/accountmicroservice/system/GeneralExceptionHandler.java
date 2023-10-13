@@ -1,9 +1,6 @@
 package com.sergiostefanizzi.accountmicroservice.system;
 
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotActivedException;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.*;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.TypeMismatchException;
@@ -49,7 +46,14 @@ public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
-
+    @ExceptionHandler(AccountAlreadyActivatedException.class)
+    public ResponseEntity<Object> handleAccountAlreadyActivatedException(AccountAlreadyActivatedException ex, WebRequest request){
+        log.error(ex.getMessage(),ex);
+        String error = "Account with id "+ex.getMessage()+" already activated!";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
 
     //update
     @ExceptionHandler(AccountNotFoundException.class)

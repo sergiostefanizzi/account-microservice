@@ -1,10 +1,11 @@
 package com.sergiostefanizzi.accountmicroservice.system.util;
 
+import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyActivatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -30,8 +31,13 @@ public class AccountInterceptor implements HandlerInterceptor {
         Long accountId = Long.valueOf((String) pathVariables.get("accountId"));
         Long checkId;
         if(request.getMethod().equalsIgnoreCase("PUT") && request.getRequestURI().equalsIgnoreCase("/accounts/"+accountId)){
-            checkId = this.accountsRepository.checkNotValidatedById(accountId)
+            AccountJpa accountJpa = this.accountsRepository.checkNotDeletedById(accountId)
                     .orElseThrow(() -> new AccountNotFoundException(accountId));
+            if (accountJpa.getValidatedAt() == null){
+                checkId = accountJpa.getId();
+            } else {
+                throw new AccountAlreadyActivatedException(accountJpa.getId());
+            }
         }else {
             checkId = this.accountsRepository.checkActiveById(accountId)
                     .orElseThrow(() -> new AccountNotFoundException(accountId));

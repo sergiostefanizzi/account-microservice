@@ -18,8 +18,8 @@ public interface AccountsRepository extends JpaRepository<AccountJpa, Long> {
     @Query("SELECT a.id FROM AccountJpa a WHERE a.id=:accountId AND a.deletedAt IS NULL AND a.validatedAt IS NOT NULL")
     Optional<Long> checkActiveById(Long accountId);
 
-    @Query("SELECT a.id FROM AccountJpa a WHERE a.id=:accountId AND a.deletedAt IS NULL AND a.validatedAt IS NULL")
-    Optional<Long> checkNotValidatedById(Long accountId);
+    @Query("SELECT a FROM AccountJpa a WHERE a.id=:accountId AND a.deletedAt IS NULL")
+    Optional<AccountJpa> checkNotDeletedById(Long accountId);
 
     @Query("SELECT a FROM AccountJpa a WHERE a.deletedAt IS NULL AND a.validatedAt IS NOT NULL")
     Optional<AccountJpa> findAllActive();

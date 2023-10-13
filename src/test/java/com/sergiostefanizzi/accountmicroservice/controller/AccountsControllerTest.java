@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
+import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.service.AccountsService;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyActivatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotActivedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
@@ -28,6 +30,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,7 +64,9 @@ class AccountsControllerTest {
 
     private Account newAccount;
     private Account savedAccount;
+    private AccountJpa savedAccountJpa;
     private AccountPatch accountToUpdate;
+    private LocalDateTime validationTime = LocalDateTime.now().minusDays(1);
 
     @BeforeEach
     void setUp() {
@@ -79,6 +84,18 @@ class AccountsControllerTest {
         this.savedAccount.setName(this.newAccount.getName());
         this.savedAccount.setSurname(this.newAccount.getSurname());
         this.savedAccount.setId(101L);
+
+        this.savedAccountJpa = new AccountJpa(
+                this.savedAccount.getEmail(),
+                this.savedAccount.getBirthdate(),
+                this.savedAccount.getGender(),
+                this.savedAccount.getPassword()
+        );
+        this.savedAccountJpa.setName(this.savedAccount.getName());
+        this.savedAccountJpa.setSurname(this.savedAccount.getSurname());
+        this.savedAccountJpa.setId(this.savedAccount.getId());
+        this.savedAccountJpa.setValidationCode("f13e7cf9-fcb2-4650-9648-4efae38ca4ac");
+        this.savedAccountJpa.setValidatedAt(this.validationTime);
 
         this.accountToUpdate = new AccountPatch();
         this.accountToUpdate.setName("Pinchetta");
@@ -534,7 +551,8 @@ class AccountsControllerTest {
     // Account activation SUCCESS
     @Test
     void testActivateAccountById_Then_204() throws Exception{
-        when(this.accountsRepository.checkNotValidatedById(anyLong())).thenReturn(Optional.of(this.savedAccount.getId()));
+        this.savedAccountJpa.setValidatedAt(null);
+        when(this.accountsRepository.checkNotDeletedById(anyLong())).thenReturn(Optional.of(this.savedAccountJpa));
         this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", UUID.randomUUID().toString())
@@ -547,7 +565,8 @@ class AccountsControllerTest {
     void testActivateAccountById_NotWellFormatted_Then_400() throws Exception{
         String validationCode = UUID.randomUUID().toString();
         String invalidValidationCode = validationCode.substring(0,validationCode.length()-1);
-        when(this.accountsRepository.checkNotValidatedById(anyLong())).thenReturn(Optional.of(this.savedAccount.getId()));
+        this.savedAccountJpa.setValidatedAt(null);
+        when(this.accountsRepository.checkNotDeletedById(anyLong())).thenReturn(Optional.of(this.savedAccountJpa));
         MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", invalidValidationCode)
@@ -564,8 +583,8 @@ class AccountsControllerTest {
     void testActivateAccountById_Invalid_Code_Then_400() throws Exception{
         String validationCode = UUID.randomUUID().toString();
 
-
-        when(this.accountsRepository.checkNotValidatedById(anyLong())).thenReturn(Optional.of(this.savedAccount.getId()));
+        this.savedAccountJpa.setValidatedAt(null);
+        when(this.accountsRepository.checkNotDeletedById(anyLong())).thenReturn(Optional.of(this.savedAccountJpa));
         doThrow(new AccountNotActivedException(this.savedAccount.getId())).when(this.accountsService).active(anyLong(), anyString());
         MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -574,6 +593,26 @@ class AccountsControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(res -> assertTrue(res.getResolvedException() instanceof AccountNotActivedException))
                 .andExpect(jsonPath("$.error").value("Error during activation of the account!"))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+
+    }
+
+    @Test
+    void testActivateAccountById_AccountAlreadyActivated_Then_400() throws Exception{
+        String validationCode = UUID.randomUUID().toString();
+
+
+        when(this.accountsRepository.checkNotDeletedById(anyLong())).thenReturn(Optional.of(this.savedAccountJpa));
+        doThrow(new AccountAlreadyActivatedException(this.savedAccount.getId())).when(this.accountsService).active(anyLong(), anyString());
+        MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .queryParam("validation_code", validationCode)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(res -> assertTrue(res.getResolvedException() instanceof AccountAlreadyActivatedException))
+                .andExpect(jsonPath("$.error").value("Account with id "+this.savedAccount.getId()+" already activated!"))
                 .andReturn();
         String resultAsString = result.getResponse().getContentAsString();
         log.info("Errors\n"+resultAsString);

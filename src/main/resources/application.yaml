@@ -6,12 +6,16 @@ spring:
       enable: true
   datasource:
     generate-unique-name: false
-    name: 'social-account'
+    name: 'social-profile'
     url: ${spring.datasource.url}
   jpa:
+    defer-datasource-initialization: ${spring.jpa.defer}
     hibernate:
       ddl-auto: ${spring.datasource.jpa.ddl}
       dialect: 'org.hibernate.dialect.H2Dialect'
+  sql:
+    init:
+      mode: ${spring.sql.init.mode}
 logging:
   level:
     org:
@@ -23,3 +27,7 @@ logging:
               BasicBinder: ${log.hibernate.level}
       springframework:
         jdbc: ${log.spring.level}
+      apache:
+        http: 'DEBUG'
+      httpclient:
+        wire: 'DEBUG'

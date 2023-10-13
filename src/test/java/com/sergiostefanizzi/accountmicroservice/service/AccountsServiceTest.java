@@ -62,12 +62,9 @@ class AccountsServiceTest {
                 this.newAccount.getGender(),
                 this.newAccount.getPassword()
                 );
-
-        this.newAccountJpa.setName("Pinco");
-        this.newAccountJpa.setSurname("Pallino");
-
-        validationCode = UUID.randomUUID();
-        this.newAccountJpa.setValidationCode(validationCode.toString());
+        this.newAccountJpa.setName(this.newAccount.getName());
+        this.newAccountJpa.setSurname(this.newAccount.getSurname());
+        this.newAccountJpa.setValidationCode(UUID.randomUUID().toString());
 
         this.convertedAccount = new Account(this.newAccountJpa.getEmail(),
                 this.newAccountJpa.getBirthdate(),
@@ -87,6 +84,8 @@ class AccountsServiceTest {
         this.savedAccountJpa.setName("Mario");
         this.savedAccountJpa.setSurname("Bros");
         this.savedAccountJpa.setId(102L);
+        this.savedAccountJpa.setValidationCode(UUID.randomUUID().toString());
+        this.savedAccountJpa.setValidatedAt(LocalDateTime.now().minusDays(1));
     }
 
     @AfterEach
@@ -100,7 +99,7 @@ class AccountsServiceTest {
         when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(this.newAccountJpa);
         when(this.accountToJpaConverter.convertBack(any(AccountJpa.class))).thenReturn(this.convertedAccount);
 
-        Account savedAccount = this.accountsService.save(newAccount);
+        Account savedAccount = this.accountsService.save(this.newAccount);
 
         assertEquals(this.convertedAccount, savedAccount);
         verify(this.accountsRepository, times(1)).findByEmail(anyString());
@@ -117,7 +116,7 @@ class AccountsServiceTest {
         when(this.accountsRepository.findByEmail(anyString())).thenReturn(Optional.ofNullable(savedAccountJpa));
 
         assertThrows(AccountAlreadyCreatedException.class, () ->
-            this.accountsService.save(newAccount)
+            this.accountsService.save(this.newAccount)
         );
 
         verify(this.accountsRepository, times(1)).findByEmail(anyString());
@@ -141,18 +140,9 @@ class AccountsServiceTest {
 
 
     // UPDATE ACCOUNT
-/*
+
     @Test
     void testUpdate_Success(){
-        AccountJpa accountJpaToUpdate = new AccountJpa(
-                "mario.rossi@gmail.com",
-                "Mario",
-                "Rossi",
-                LocalDate.of(1990,4,4),
-                AccountJpa.Gender.MALE,
-                "5434543jhkhjjh"
-        );
-        accountJpaToUpdate.setId(accountId);
 
         String newName = "Giuseppe";
         String newSurname = "Verdi";
@@ -166,170 +156,64 @@ class AccountsServiceTest {
         accountToUpdate.setPassword(newPassword);
 
         Account convertedUpdatedAccount = new Account(
-                accountJpaToUpdate.getEmail(),
-                accountJpaToUpdate.getBirthdate(),
+                this.savedAccountJpa.getEmail(),
+                this.savedAccountJpa.getBirthdate(),
                 Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()),
                 accountToUpdate.getPassword()
         );
-        convertedUpdatedAccount.setId(accountId);
+        convertedUpdatedAccount.setId(this.savedAccountJpa.getId());
         convertedUpdatedAccount.setName(accountToUpdate.getName());
         convertedUpdatedAccount.setSurname(accountToUpdate.getSurname());
 
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountJpaToUpdate));
-        when(this.accountsRepository.save(accountJpaToUpdate)).thenReturn(accountJpaToUpdate);
-        when(this.accountToJpaConverter.convertBack(accountJpaToUpdate)).thenReturn(convertedUpdatedAccount);
+        when(this.accountsRepository.getReferenceById(anyLong())).thenReturn(this.savedAccountJpa);
+        when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(this.savedAccountJpa);
+        when(this.accountToJpaConverter.convertBack(any(AccountJpa.class))).thenReturn(convertedUpdatedAccount);
 
-        Account updatedAccount = this.accountsService.update(accountId, accountToUpdate);
+        Account updatedAccount = this.accountsService.update(this.savedAccountJpa.getId(), accountToUpdate);
 
-        log.info("updated at "+accountJpaToUpdate.getUpdatedAt());
-
-        assertNotNull(accountJpaToUpdate.getUpdatedAt());
-        assertEquals(accountId, updatedAccount.getId());
+        assertNotNull(this.savedAccountJpa.getUpdatedAt());
+        log.info("updated at "+this.savedAccountJpa.getUpdatedAt());
+        assertEquals(this.savedAccountJpa.getId(), updatedAccount.getId());
         assertEquals(accountToUpdate.getName(), updatedAccount.getName());
         assertEquals(accountToUpdate.getSurname(), updatedAccount.getSurname());
         assertEquals(accountToUpdate.getGender().toString(), updatedAccount.getGender().toString());
         assertEquals(accountToUpdate.getPassword(), updatedAccount.getPassword());
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(1)).save(accountJpaToUpdate);
-        verify(this.accountToJpaConverter, times(1)).convertBack(accountJpaToUpdate);
+        verify(this.accountsRepository, times(1)).getReferenceById(anyLong());
+        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
+        verify(this.accountToJpaConverter, times(1)).convertBack(any(AccountJpa.class));
     }
 
-
-    @Test
-    void testUpdate_AccountNotFound_Failed(){
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.empty());
-
-        assertThrows(AccountNotFoundException.class,() -> {
-            this.accountsService.update(accountId, any(AccountPatch.class));
-        });
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
-    }
-
-
-    @Test
-    void testUpdate_RemovedAccount_Failed(){
-        AccountJpa removedAccountJpa = new AccountJpa(
-                "mario.rossi@gmail.com",
-                "Mario",
-                "Rossi",
-                LocalDate.of(1990,4,4),
-                AccountJpa.Gender.MALE,
-                "5434543jhkhjjh!"
-        );
-        removedAccountJpa.setId(accountId);
-        removedAccountJpa.setDeletedAt(Timestamp.valueOf(LocalDateTime.of(2022,5,4,12,30,15)));
-
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(removedAccountJpa));
-
-        assertThrows(AccountNotFoundException.class,() -> {
-            this.accountsService.update(accountId, any(AccountPatch.class));
-        });
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
-    }
 
     // ACTIVE ACCOUNT
 
     @Test
     void testActive_Success(){
-        AccountJpa accountJpaToActive = new AccountJpa(
-                newAccountJpa.getEmail(),
-                newAccountJpa.getName(),
-                newAccountJpa.getSurname(),
-                newAccountJpa.getBirthdate(),
-                newAccountJpa.getGender(),
-                newAccountJpa.getPassword());
-        accountJpaToActive.setValidationCode(validationCode.toString());
-        accountJpaToActive.setId(accountId);
+        this.newAccountJpa.setId(101L);
+        when(this.accountsRepository.getReferenceById(anyLong())).thenReturn(this.newAccountJpa);
 
-        log.info(accountJpaToActive.getValidatedAt() == null ? "NULL" : accountJpaToActive.getValidatedAt().toString());
+        this.accountsService.active(this.newAccountJpa.getId(), this.newAccountJpa.getValidationCode());
 
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountJpaToActive));
-
-        this.accountsService.active(accountId, validationCode.toString());
-
-        log.info(accountJpaToActive.getValidatedAt() == null ? "NULL" : accountJpaToActive.getValidatedAt().toString());
-
-
-        assertEquals(validationCode.toString(), accountJpaToActive.getValidationCode());
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(1)).save(accountJpaToActive);
+        verify(this.accountsRepository, times(1)).getReferenceById(anyLong());
+        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
 
     }
 
-    @Test
-    void testActive_AlreadyValidated_Success(){
-        AccountJpa accountJpaToActive = new AccountJpa(
-                newAccountJpa.getEmail(),
-                newAccountJpa.getName(),
-                newAccountJpa.getSurname(),
-                newAccountJpa.getBirthdate(),
-                newAccountJpa.getGender(),
-                newAccountJpa.getPassword());
-        accountJpaToActive.setValidationCode(validationCode.toString());
-        accountJpaToActive.setId(accountId);
-        accountJpaToActive.setValidatedAt(Timestamp.valueOf(LocalDateTime.of(2022,1,2,12,15,0)));
-
-        log.info(accountJpaToActive.getValidatedAt() == null ? "NULL" : accountJpaToActive.getValidatedAt().toString());
-
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountJpaToActive));
-
-        this.accountsService.active(accountId, validationCode.toString());
-
-        log.info(accountJpaToActive.getValidatedAt() == null ? "NULL" : accountJpaToActive.getValidatedAt().toString());
-
-
-        assertEquals(validationCode.toString(), accountJpaToActive.getValidationCode());
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(0)).save(accountJpaToActive);
-
-    }
-
-
-    @Test
-    void testActive_NotFound_NotActivated_Failed(){
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.empty());
-
-        assertThrows(AccountNotActivedException.class,
-                ()->{
-                    this.accountsService.active(accountId, validationCode.toString());
-                }
-        );
-
-        verify(this.accountsRepository, times(1)).findById(accountId);
-        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
-
-    }
 
     @Test
     void testActive_ErrorOn_ValidationCode_NotActivated_Failed(){
-        AccountJpa accountJpaToActive = new AccountJpa(
-                newAccountJpa.getEmail(),
-                newAccountJpa.getName(),
-                newAccountJpa.getSurname(),
-                newAccountJpa.getBirthdate(),
-                newAccountJpa.getGender(),
-                newAccountJpa.getPassword());
-
-        accountJpaToActive.setValidationCode(validationCode.toString());
-        accountJpaToActive.setId(accountId);
-
-        UUID newValidationCode = UUID.randomUUID();
-
-        when(this.accountsRepository.findById(accountId)).thenReturn(Optional.of(accountJpaToActive));
+        this.newAccountJpa.setId(101L);
+        when(this.accountsRepository.getReferenceById(anyLong())).thenReturn(this.newAccountJpa);
 
         assertThrows(AccountNotActivedException.class,
                 ()->{
-                    this.accountsService.active(accountId, newValidationCode.toString());
+                    this.accountsService.active(this.newAccountJpa.getId(), UUID.randomUUID().toString());
                 }
         );
-
-        verify(this.accountsRepository, times(1)).findById(accountId);
+        verify(this.accountsRepository, times(1)).getReferenceById(anyLong());
         verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
+
 
     }
 
-     */
 
 }

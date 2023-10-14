@@ -358,7 +358,7 @@ class AccountsControllerTest {
 
     @Test
     void testDeleteAccountById_Then_404() throws Exception{
-        when(this.accountsRepository.checkActiveById(anyLong())).thenThrow(new AccountNotFoundException(this.savedAccount.getId()));
+        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.empty());
 
         MvcResult result = this.mockMvc.perform(delete("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)

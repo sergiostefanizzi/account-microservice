@@ -22,7 +22,7 @@ public interface AccountsRepository extends JpaRepository<AccountJpa, Long> {
     Optional<AccountJpa> checkNotDeletedById(Long accountId);
 
     @Query("SELECT a FROM AccountJpa a WHERE a.deletedAt IS NULL AND a.validatedAt IS NOT NULL")
-    Optional<AccountJpa> findAllActive();
+    List<AccountJpa> findAllActive();
 
     @Query("SELECT a FROM AccountJpa a WHERE a.validatedAt IS NOT NULL")
     List<AccountJpa> findAllActiveAndDeleted();

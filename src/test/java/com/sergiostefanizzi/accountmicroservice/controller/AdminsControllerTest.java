@@ -20,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDate;
@@ -29,6 +30,7 @@ import java.util.Optional;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.hasSize;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
@@ -251,5 +253,20 @@ class AdminsControllerTest {
         String resultAsString = result.getResponse().getContentAsString();
         log.info("Errors\n"+resultAsString);
     }
+
+    @Test
+    void testFindAllAccounts_MissingQueryParam_Then_400() throws Exception{
+
+        MvcResult result = this.mockMvc.perform(get("/admins/accounts")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(res-> assertTrue(res.getResolvedException() instanceof MissingServletRequestParameterException))
+                .andExpect(jsonPath("$.error").value("Required request parameter 'removedAccount' for method parameter type Boolean is not present"))
+                .andReturn();
+
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+    }
+
 
 }

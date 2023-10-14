@@ -320,7 +320,7 @@ public class AccountsIT {
                 HttpMethod.DELETE,
                 HttpEntity.EMPTY,
                 String.class);
-        String error = "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'; For input string: \"rgfd\"";
+
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("ID is not valid!", node.get("error").asText());

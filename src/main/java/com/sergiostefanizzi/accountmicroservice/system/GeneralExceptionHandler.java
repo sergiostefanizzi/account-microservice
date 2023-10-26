@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -26,6 +27,15 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 @Slf4j
 public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex, WebRequest request){
+        log.error(ex.getMessage(),ex);
+        String error = "Forbidden!";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
+    }
 
     @ExceptionHandler(NumberFormatException.class)
     public ResponseEntity<Object> handleNumberFormatException(NumberFormatException ex, WebRequest request){

@@ -19,4 +19,8 @@ public class AccountConfiguration implements WebMvcConfigurer {
                 .addPathPatterns("/admins/**")
                 .addPathPatterns("/admins/accounts");
     }
+
+
+
+
 }

@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: 8083
 spring:
   h2:
     console:
@@ -16,6 +16,17 @@ spring:
   sql:
     init:
       mode: ${spring.sql.init.mode}
+  autoconfigure:
+    exclude: ${spring.security}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          #issuer-uri: http://auth-server:8082
+          #issuer-uri: http://localhost:8082/auth/realms/social-accounts
+          #jwk-set-uri: http://localhost:8082/auth/realms/social-accounts/protocol/openid-connect/certs
+          issuer-uri: http://localhost:8082/realms/social-accounts
+          jwk-set-uri: http://localhost:8082/realms/social-accounts/protocol/openid-connect/certs
 logging:
   level:
     org:
@@ -31,3 +42,9 @@ logging:
         http: 'DEBUG'
       httpclient:
         wire: 'DEBUG'
+
+jwt:
+  auth:
+    converter:
+      resource-id: accounts-micro
+      principle-attribute: preferred_username

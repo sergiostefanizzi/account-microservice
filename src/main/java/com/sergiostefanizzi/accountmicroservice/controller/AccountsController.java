@@ -48,17 +48,4 @@ public class AccountsController implements AccountsApi {
         Account updatedAccount = this.accountsService.update(accountId, accountPatch);
         return new ResponseEntity<>(updatedAccount, HttpStatus.OK);
     }
-
-    /*
-
-
-
-    @Override
-    public ResponseEntity<Account> updateAccountById(Long accountId, AccountPatch updateAccountByIdRequest) {
-        //TODO: fare controllo di permesso
-
-    }
-
-     */
-
 }

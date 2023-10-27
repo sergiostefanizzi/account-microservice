@@ -5,7 +5,4 @@ public class AdminAlreadyCreatedException extends RuntimeException{
         super(message);
     }
 
-    public AdminAlreadyCreatedException(Long accountId) {
-        super(accountId.toString());
-    }
 }

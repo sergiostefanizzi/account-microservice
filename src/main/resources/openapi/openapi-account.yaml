@@ -166,7 +166,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Admin'
+                type: string
+                pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':

@@ -21,19 +21,19 @@ import java.util.List;
 @Slf4j
 public class AdminsController implements AdminsApi {
     private final AdminsService adminsService;
-    /*
+
     @Override
-    public ResponseEntity<Admin> addAdminById(Long accountId) {
-        Admin savedAdmin = this.adminsService.save(accountId);
-        return new ResponseEntity<>(savedAdmin, HttpStatus.CREATED);
+    public ResponseEntity<String> addAdminById(String accountId) {
+        String adminId = this.adminsService.save(accountId);
+        return new ResponseEntity<>(adminId, HttpStatus.CREATED);
     }
 
     @Override
-    public ResponseEntity<Void> deleteAdminById(Long accountId) {
+    public ResponseEntity<Void> deleteAdminById(String accountId) {
         this.adminsService.remove(accountId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-
+    /*
     @Override
     public ResponseEntity<List<Account>> findAllAccounts(Boolean removedAccount) {
         List<Account> accountList = this.adminsService.findAll(removedAccount);

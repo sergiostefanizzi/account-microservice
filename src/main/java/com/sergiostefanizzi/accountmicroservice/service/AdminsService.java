@@ -1,21 +1,16 @@
 package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
-import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountJpaToAdminConverter;
 
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +21,19 @@ public class AdminsService {
 
     private final AccountToJpaConverter accountToJpaConverter;
 
-    private final AccountJpaToAdminConverter accountJpaToAdminConverter;
+    @Autowired
+    private KeycloakService keycloakService;
+
+    @Transactional
+    public String save(String accountId) {
+        return keycloakService.createAdmin(accountId)
+                .orElseThrow(() -> new AdminAlreadyCreatedException(accountId));
+    }
+
+    @Transactional
+    public void remove(String accountId) {
+        keycloakService.blockUser(accountId);
+    }
     /*
 
     @Transactional
@@ -39,27 +46,9 @@ public class AdminsService {
         }
     }
 
-    @Transactional
-    public Admin save(Long accountId) {
 
-        AccountJpa adminToBe = this.accountsRepository.getReferenceById(accountId);
-        //controllo che l'account non sia gia' un admin
-        if (adminToBe.getIsAdmin()){
-            throw new AdminAlreadyCreatedException(accountId);
-        }
-        adminToBe.setIsAdmin(true);
 
-        return this.accountJpaToAdminConverter.convert(
-                this.accountsRepository.save(adminToBe)
-        );
-    }
 
-    @Transactional
-    public void remove(Long accountId) {
-        AccountJpa accountToDelete = this.accountsRepository.getReferenceById(accountId);
-        accountToDelete.setDeletedAt(LocalDateTime.now());
-        this.accountsRepository.save(accountToDelete);
-    }
 
      */
 

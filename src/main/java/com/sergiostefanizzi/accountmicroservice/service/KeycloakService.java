@@ -8,11 +8,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UserResource;
-import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.representations.idm.CredentialRepresentation;
-import org.keycloak.representations.idm.RoleRepresentation;
-import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.idm.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -54,6 +53,70 @@ public class KeycloakService {
         }
     }
 
+    public void blockUser(String accountId) {
+        UserResource userResource = this.keycloak.realm(REALM_NAME)
+                .users()
+                .get(accountId);
+
+        UserRepresentation user = userResource.toRepresentation();
+
+        if(checkRealmRole(userResource, "admin") && checkClientRole(userResource, "admin")){
+            unSetRoles(userResource, "admin");
+        }
+
+        user.setEnabled(false);
+
+        this.keycloak.realm(REALM_NAME)
+                .users()
+                .get(accountId)
+                .update(user);
+    }
+
+    public Optional<String> createAdmin(String accountId) {
+        UserResource userResource = this.keycloak.realm(REALM_NAME)
+                .users()
+                .get(accountId);
+
+        UserRepresentation user = userResource.toRepresentation();
+
+        if(checkRealmRole(userResource, "admin") && checkClientRole(userResource, "admin")){
+           return Optional.empty();
+       }
+
+        setRoles(userResource, "admin");
+
+        return Optional.of(user.getId());
+    }
+
+    private boolean checkRealmRole(UserResource userResource, String role) {
+        RoleRepresentation userRealmRole = this.keycloak.realm(REALM_NAME)
+                .roles()
+                .get(role)
+                .toRepresentation();
+        return userResource
+                .roles()
+                .realmLevel()
+                        .listEffective().contains(userRealmRole);
+    }
+
+    private boolean checkClientRole(UserResource userResource, String role) {
+        ClientRepresentation accountsMicroClient = this.keycloak.realm(REALM_NAME)
+                .clients()
+                .findByClientId("accounts-micro")
+                .get(0);
+
+        RoleRepresentation userClientRole = this.keycloak.realm(REALM_NAME)
+                .clients()
+                .get(accountsMicroClient.getId())
+                .roles()
+                .get("client_"+role)
+                .toRepresentation();
+        return userResource
+                .roles()
+                .clientLevel(accountsMicroClient.getId())
+                .listEffective().contains(userClientRole);
+    }
+
     public UserRepresentation updateUser(String accountId, AccountPatch accountToUpdate) {
         UserResource userResource = this.keycloak.realm(REALM_NAME)
                 .users()
@@ -92,7 +155,7 @@ public class KeycloakService {
 
         userResource.resetPassword(credential);
 
-        setUserRoles(userResource);
+        setRoles(userResource, "client");
 
         log.info(userResource.toRepresentation().toString());
         return userResource.toRepresentation();
@@ -149,31 +212,64 @@ public class KeycloakService {
     }
 
 
-    private void setUserRoles(UserResource userResource) {
-        RoleRepresentation userRealmRole = this.keycloak.realm(REALM_NAME)
+    private void setRoles(UserResource userResource, String role) {
+        RealmResource realmRepresentation = this.keycloak.realm(REALM_NAME);
+
+        RoleRepresentation userRealmRole = realmRepresentation
                 .roles()
-                .get("user")
+                .get(role)
                 .toRepresentation();
         userResource
                 .roles()
                 .realmLevel()
                 .add(Collections.singletonList(userRealmRole));
 
-        ClientRepresentation accountsMicroClient = this.keycloak.realm(REALM_NAME)
+
+        ClientRepresentation accountsMicroClient = realmRepresentation
                 .clients()
                 .findByClientId("accounts-micro")
                 .get(0);
 
-        RoleRepresentation userClientRole = this.keycloak.realm(REALM_NAME)
+        RoleRepresentation userClientRole = realmRepresentation
                 .clients()
                 .get(accountsMicroClient.getId())
                 .roles()
-                .get("client_user")
+                .get("client_"+role)
                 .toRepresentation();
         userResource
                 .roles()
                 .clientLevel(accountsMicroClient.getId())
                 .add(Collections.singletonList(userClientRole));
+    }
+
+    private void unSetRoles(UserResource userResource, String role) {
+        RealmResource realmRepresentation = this.keycloak.realm(REALM_NAME);
+
+        RoleRepresentation userRealmRole = realmRepresentation
+                .roles()
+                .get(role)
+                .toRepresentation();
+        userResource
+                .roles()
+                .realmLevel()
+                .remove(Collections.singletonList(userRealmRole));
+
+        ClientRepresentation accountsMicroClient = realmRepresentation
+                .clients()
+                .findByClientId("accounts-micro")
+                .get(0);
+
+        RoleRepresentation userClientRole = realmRepresentation
+                .clients()
+                .get(accountsMicroClient.getId())
+                .roles()
+                .get("client_"+role)
+                .toRepresentation();
+        userResource
+                .roles()
+                .clientLevel(accountsMicroClient.getId())
+                .remove(Collections.singletonList(userClientRole));
+
     }
 
 

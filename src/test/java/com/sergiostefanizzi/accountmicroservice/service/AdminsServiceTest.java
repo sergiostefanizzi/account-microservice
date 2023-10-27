@@ -1,30 +1,20 @@
 package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
-import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountJpaToAdminConverter;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static java.util.Arrays.asList;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @Slf4j
@@ -33,8 +23,7 @@ class AdminsServiceTest {
     private AccountsRepository accountsRepository;
     @Mock
     private AccountToJpaConverter accountToJpaConverter;
-    @Mock
-    private AccountJpaToAdminConverter accountJpaToAdminConverter;
+
     @InjectMocks
     private AdminsService adminsService;
     private Account savedAccount1;

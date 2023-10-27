@@ -26,7 +26,7 @@ public class AccountsController implements AccountsApi {
         Account savedAccount = this.accountsService.save(newAccount);
         return new ResponseEntity<>(savedAccount, HttpStatus.CREATED);
     }
-
+    /*
     @Override
     public ResponseEntity<Void> activateAccountById(Long accountId, String validationCode) {
         //TODO: fare controllo di permesso
@@ -48,5 +48,7 @@ public class AccountsController implements AccountsApi {
         Account updatedAccount = this.accountsService.update(accountId, updateAccountByIdRequest);
         return new ResponseEntity<>(updatedAccount, HttpStatus.OK);
     }
+
+     */
 
 }

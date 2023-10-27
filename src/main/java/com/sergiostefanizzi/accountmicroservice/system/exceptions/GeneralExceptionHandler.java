@@ -1,4 +1,4 @@
-package com.sergiostefanizzi.accountmicroservice.system;
+package com.sergiostefanizzi.accountmicroservice.system.exceptions;
 
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.*;
 import jakarta.validation.ConstraintViolationException;

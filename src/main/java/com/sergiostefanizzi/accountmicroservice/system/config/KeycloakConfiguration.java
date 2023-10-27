@@ -1,4 +1,4 @@
-package com.sergiostefanizzi.accountmicroservice.system.util;
+package com.sergiostefanizzi.accountmicroservice.system.config;
 
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;

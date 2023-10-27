@@ -17,7 +17,7 @@ public class AccountToJpaConverter implements Converter<Account, AccountJpa> {
         if (source.getSurname() != null) accountJpa.setSurname(source.getSurname());
         return accountJpa;
     }
-
+    /*
     public Account convertBack(AccountJpa source) {
         Account account = new Account(source.getEmail(),
                 source.getBirthdate(),
@@ -27,4 +27,6 @@ public class AccountToJpaConverter implements Converter<Account, AccountJpa> {
         account.setId(source.getId());
         return account;
     }
+
+     */
 }

@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 public class AdminsController implements AdminsApi {
     private final AdminsService adminsService;
-
+    /*
     @Override
     public ResponseEntity<Admin> addAdminById(Long accountId) {
         Admin savedAdmin = this.adminsService.save(accountId);
@@ -39,4 +39,6 @@ public class AdminsController implements AdminsApi {
         List<Account> accountList = this.adminsService.findAll(removedAccount);
         return new ResponseEntity<>(accountList, HttpStatus.OK);
     }
+
+     */
 }

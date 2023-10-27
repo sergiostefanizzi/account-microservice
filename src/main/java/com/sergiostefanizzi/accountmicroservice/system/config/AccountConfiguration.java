@@ -1,4 +1,4 @@
-package com.sergiostefanizzi.accountmicroservice.system;
+package com.sergiostefanizzi.accountmicroservice.system.config;
 
 import com.sergiostefanizzi.accountmicroservice.system.util.AccountInterceptor;
 import lombok.extern.slf4j.Slf4j;

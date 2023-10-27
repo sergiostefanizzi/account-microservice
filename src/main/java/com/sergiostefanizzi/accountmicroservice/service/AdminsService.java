@@ -27,6 +27,7 @@ public class AdminsService {
     private final AccountToJpaConverter accountToJpaConverter;
 
     private final AccountJpaToAdminConverter accountJpaToAdminConverter;
+    /*
 
     @Transactional
     public List<Account> findAll(Boolean removedAccount) {
@@ -59,6 +60,8 @@ public class AdminsService {
         accountToDelete.setDeletedAt(LocalDateTime.now());
         this.accountsRepository.save(accountToDelete);
     }
+
+     */
 
 
 }

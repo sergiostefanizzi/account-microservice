@@ -14,13 +14,14 @@ public class UserRepresentationToAccountConverter implements Converter<UserRepre
     public Account convert(UserRepresentation source) {
         Account account = new Account(
                 source.getEmail(),
-                LocalDate.parse(source.getAttributes().get("birthdate").get(0)),
-                Account.GenderEnum.valueOf(source.getAttributes().get("gender").get(0)),
+                source.getAttributes().get("birthdate") == null ? null : LocalDate.parse(source.getAttributes().get("birthdate").get(0)),
+                source.getAttributes().get("gender") == null ? null : Account.GenderEnum.valueOf(source.getAttributes().get("gender").get(0)),
                 null
         );
         account.setName(source.getFirstName());
         account.setSurname(source.getLastName());
-        account.setId(UUID.fromString(source.getId()));
+        account.setId(source.getId());
         return account;
     }
+
 }

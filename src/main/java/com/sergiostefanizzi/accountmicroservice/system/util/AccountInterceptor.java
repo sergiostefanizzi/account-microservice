@@ -1,7 +1,7 @@
 package com.sergiostefanizzi.accountmicroservice.system.util;
 
-import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
+import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyActivatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +20,36 @@ import java.util.Map;
 public class AccountInterceptor implements HandlerInterceptor {
     @Autowired
     private AccountsRepository accountsRepository;
+    @Autowired
+    private KeycloakService keycloakService;
 
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        log.info("\n\tAccount Interceptor -> "+request.getRequestURI());
+        // Esco se e' un metodo post
+        if (request.getMethod().equalsIgnoreCase("POST") || request.getMethod().equalsIgnoreCase("GET")) return true;
+
+        Map pathVariables = (Map) request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+        String accountId = (String) pathVariables.get("accountId");
+        Boolean check = false;
+        if(request.getMethod().equalsIgnoreCase("PUT") && request.getRequestURI().equalsIgnoreCase("/accounts/"+accountId)){
+            check = keycloakService.checkActiveById(accountId);
+            if(check && !keycloakService.checksEmailValidated(accountId)){
+                throw new AccountAlreadyActivatedException(accountId);
+            }
+        }else {
+            check = keycloakService.checkActiveById(accountId);
+        }
+        
+        if (!check){
+            throw new AccountNotFoundException(accountId);
+        }
+
+        log.info("\n\tAccount Interceptor: Account ID-> "+accountId);
+        return true;
+    }
+
+    /*
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         log.info("\n\tAccount Interceptor -> "+request.getRequestURI());
@@ -47,6 +76,8 @@ public class AccountInterceptor implements HandlerInterceptor {
         log.info("\n\tAccount Interceptor: Profile ID-> "+checkId);
         return true;
     }
+
+     */
 
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {

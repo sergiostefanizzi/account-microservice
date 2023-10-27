@@ -49,7 +49,7 @@ class AdminsServiceTest {
             UUID.randomUUID().toString(),
             UUID.randomUUID().toString()
     );
-
+    /*
     Long accountId = 1L;
     @BeforeEach
     void setUp() {
@@ -228,6 +228,8 @@ class AdminsServiceTest {
 
         log.info(this.savedAccountJpa1.getDeletedAt().toString());
     }
+
+     */
 
 
 

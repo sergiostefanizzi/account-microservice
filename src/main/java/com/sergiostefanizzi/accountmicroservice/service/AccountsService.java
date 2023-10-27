@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -46,14 +47,26 @@ public class AccountsService {
     }
 
 
-    /*
+
     @Transactional
-    public void remove(Long accountId){
-        AccountJpa accountToRemove = this.accountsRepository.getReferenceById(accountId);
-        accountToRemove.setDeletedAt(LocalDateTime.now());
-        this.accountsRepository.save(accountToRemove);
+    public void remove(String accountId){
+        keycloakService.removeUser(accountId);
     }
 
+    @Transactional
+    public void active(String accountId, String validationCode){
+        if(!keycloakService.validateEmail(accountId, validationCode)){
+            throw new AccountNotActivedException(String.valueOf(accountId));
+        }
+    }
+
+    @Transactional
+    public Account update(String accountId, AccountPatch accountToUpdate){
+        return userRepresentationToAccountConverter.convert(
+                keycloakService.updateUser(accountId, accountToUpdate));
+    }
+
+    /*
     @Transactional
     public Account update(Long accountId, AccountPatch accountToUpdate){
         AccountJpa savedAccountJpa = this.accountsRepository.getReferenceById(accountId);
@@ -69,17 +82,7 @@ public class AccountsService {
         );
     }
 
-    @Transactional
-    public void active(Long accountId, String validationCode){
-        AccountJpa accountJpaToActive = this.accountsRepository.getReferenceById(accountId);
 
-        if(accountJpaToActive.getValidationCode().equals(validationCode)){
-            accountJpaToActive.setValidatedAt(LocalDateTime.now());
-            this.accountsRepository.save(accountJpaToActive);
-        }else{
-            throw new AccountNotActivedException(accountId);
-        }
-    }
      */
 
 }

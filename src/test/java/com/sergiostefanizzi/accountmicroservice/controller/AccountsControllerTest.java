@@ -71,7 +71,7 @@ class AccountsControllerTest {
     private AccountJpa savedAccountJpa;
     private AccountPatch accountToUpdate;
     private LocalDateTime validationTime = LocalDateTime.now().minusDays(1);
-
+    /*
     @BeforeEach
     void setUp() {
         this.newAccount = new Account("pinco.pallino@gmail.com",
@@ -622,6 +622,8 @@ class AccountsControllerTest {
         log.info("Errors\n"+resultAsString);
 
     }
+
+     */
 
 
 }

@@ -61,7 +61,7 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         - name: validation_code
           in: query
           description: Validation code of the account to be activated
@@ -92,7 +92,7 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       responses:
         '204':
           description: Account has been successfully deleted!
@@ -120,7 +120,7 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       requestBody:
         content:
           application/json:
@@ -159,7 +159,7 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       responses:
         '201':
           description: Admin created!
@@ -195,7 +195,7 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       responses:
         '204':
           description: Admin has been successfully removed!
@@ -286,8 +286,7 @@ components:
       properties:
         id:
           type: string
-          format: uuid
-          #pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
           readOnly: true
           description: Account id
         email:

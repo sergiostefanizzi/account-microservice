@@ -25,7 +25,7 @@ public class SecurityConfig {
                 .csrf().disable()
                 .authorizeHttpRequests()
                 .requestMatchers(HttpMethod.POST, "/accounts").permitAll()
-                .requestMatchers(HttpMethod.PUT, "/accounts/**").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/accounts/**").hasAnyRole("client_user","client_admin")
                 .requestMatchers(HttpMethod.DELETE, "/accounts/**").hasAnyRole("client_user","client_admin")
                 .requestMatchers(HttpMethod.PATCH, "/accounts/**").hasAnyRole("client_user","client_admin")
                 .requestMatchers("/admins/**").hasRole("client_admin")

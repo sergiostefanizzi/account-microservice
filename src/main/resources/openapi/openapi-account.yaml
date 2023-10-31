@@ -83,8 +83,8 @@ paths:
       summary: Delete an account
       description: Delete an account
       operationId: deleteAccountById
-      #security:
-      #  - bearerAuth: []
+      security:
+        - bearerAuth: []
       parameters:
         - name: accountId
           in: path

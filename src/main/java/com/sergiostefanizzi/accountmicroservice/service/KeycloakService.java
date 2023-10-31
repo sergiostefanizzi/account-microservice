@@ -80,13 +80,27 @@ public class KeycloakService {
         UserRepresentation user = userResource.toRepresentation();
 
         if(checkRealmRole(userResource, "admin") && checkClientRole(userResource, "admin")){
-           return Optional.empty();
-       }
+            return Optional.empty();
+        }
 
         setRoles(userResource, "admin");
 
         return Optional.of(user.getId());
     }
+
+    public List<UserRepresentation> findAllActive(Boolean disabled){
+        List<UserRepresentation> usersList = this.keycloak.realm(REALM_NAME)
+                .users()
+                .list();
+        if (!disabled){
+            return usersList.stream().filter(UserRepresentation::isEnabled).toList();
+        }
+        return usersList;
+    }
+
+
+
+
 
     private boolean checkRealmRole(UserResource userResource, String role) {
         RoleRepresentation userRealmRole = this.keycloak.realm(REALM_NAME)
@@ -145,6 +159,7 @@ public class KeycloakService {
     }
 
     public boolean validateEmail(String accountId, String validationCode) {
+        //TODO email da keycloak
         return true;
     }
 

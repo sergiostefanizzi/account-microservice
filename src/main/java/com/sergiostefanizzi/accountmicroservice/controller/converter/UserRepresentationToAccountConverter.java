@@ -12,12 +12,24 @@ import java.util.UUID;
 public class UserRepresentationToAccountConverter implements Converter<UserRepresentation, Account> {
     @Override
     public Account convert(UserRepresentation source) {
-        Account account = new Account(
-                source.getEmail(),
-                source.getAttributes().get("birthdate") == null ? null : LocalDate.parse(source.getAttributes().get("birthdate").get(0)),
-                source.getAttributes().get("gender") == null ? null : Account.GenderEnum.valueOf(source.getAttributes().get("gender").get(0)),
-                null
-        );
+        Account account;
+        // Questo if e' solo per utenti creati direttamente in keycloak
+        if (source.getAttributes() == null){
+            account = new Account(
+                    source.getEmail(),
+                    null,
+                    null,
+                    null
+            );
+        }else {
+            account = new Account(
+                    source.getEmail(),
+                    source.getAttributes().get("birthdate") == null ? null : LocalDate.parse(source.getAttributes().get("birthdate").get(0)),
+                    source.getAttributes().get("gender") == null ? null : Account.GenderEnum.valueOf(source.getAttributes().get("gender").get(0)),
+                    null
+            );
+        }
+
         account.setName(source.getFirstName());
         account.setSurname(source.getLastName());
         account.setId(source.getId());

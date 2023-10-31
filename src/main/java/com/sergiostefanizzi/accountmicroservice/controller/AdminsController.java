@@ -4,6 +4,7 @@ import com.sergiostefanizzi.accountmicroservice.api.AdminsApi;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.service.AdminsService;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -33,12 +34,11 @@ public class AdminsController implements AdminsApi {
         this.adminsService.remove(accountId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-    /*
+
     @Override
     public ResponseEntity<List<Account>> findAllAccounts(Boolean removedAccount) {
         List<Account> accountList = this.adminsService.findAll(removedAccount);
         return new ResponseEntity<>(accountList, HttpStatus.OK);
     }
 
-     */
 }

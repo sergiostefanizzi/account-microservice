@@ -2,6 +2,8 @@ package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
 
+import com.sergiostefanizzi.accountmicroservice.controller.converter.UserRepresentationToAccountConverter;
+import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
@@ -11,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +27,8 @@ public class AdminsService {
 
     @Autowired
     private KeycloakService keycloakService;
+    @Autowired
+    private UserRepresentationToAccountConverter userRepresentationToAccountConverter;
 
     @Transactional
     public String save(String accountId) {
@@ -34,15 +40,14 @@ public class AdminsService {
     public void remove(String accountId) {
         keycloakService.blockUser(accountId);
     }
-    /*
+
 
     @Transactional
     public List<Account> findAll(Boolean removedAccount) {
-
         if(!removedAccount){
-            return this.accountsRepository.findAllActive().stream().map(this.accountToJpaConverter::convertBack).toList();
+            return this.keycloakService.findAllActive(false).stream().map(this.userRepresentationToAccountConverter::convert).toList();
         }else{
-            return this.accountsRepository.findAllActiveAndDeleted().stream().map(this.accountToJpaConverter::convertBack).toList();
+            return this.keycloakService.findAllActive(true).stream().map(this.userRepresentationToAccountConverter::convert).toList();
         }
     }
 
@@ -50,7 +55,6 @@ public class AdminsService {
 
 
 
-     */
 
 
 }

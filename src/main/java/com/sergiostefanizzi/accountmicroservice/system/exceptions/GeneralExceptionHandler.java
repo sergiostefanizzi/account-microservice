@@ -28,6 +28,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
 
+    @ExceptionHandler(ActionForbiddenException.class)
+    public ResponseEntity<Object> handleActionForbiddenException(ActionForbiddenException ex, WebRequest request){
+        log.error(ex.getMessage(),ex);
+        String error = "Forbidden: Account with id "+ex.getMessage()+" can not perform this action";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
+    }
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex, WebRequest request){
         log.error(ex.getMessage(),ex);

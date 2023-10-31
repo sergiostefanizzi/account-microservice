@@ -143,7 +143,7 @@ public class KeycloakService {
         // check perche' modifico solo i campi passati dalla patch
         if (StringUtils.hasText(accountToUpdate.getName()))  user.setFirstName(accountToUpdate.getName());
         if (StringUtils.hasText(accountToUpdate.getSurname()))  user.setLastName((accountToUpdate.getSurname()));
-        if (StringUtils.hasText(accountToUpdate.getGender().toString())){
+        if (accountToUpdate.getGender() != null){
             attributes.put("gender", List.of(Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()).toString()));
             user.setAttributes(attributes);
         }

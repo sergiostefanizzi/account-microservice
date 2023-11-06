@@ -25,9 +25,11 @@ public class AccountsService {
 
     @Transactional
     public Account save(Account newAccount) {
-        if(!keycloakService.getUsersByEmail(newAccount.getEmail()).isEmpty()){
+
+        if(keycloakService.checkUsersByEmail(newAccount.getEmail())){
             throw new AccountAlreadyCreatedException(newAccount.getEmail());
         }
+
 
         return userRepresentationToAccountConverter.convert(
                 keycloakService.createUser(newAccount)

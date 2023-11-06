@@ -2,6 +2,8 @@ package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -53,6 +56,96 @@ public class KeycloakService {
         }
     }
 
+    public UserRepresentation createUser(Account newAccount){
+        UserResource userResource = createUserResource(newAccount);
+
+        CredentialRepresentation credential = getCredentialRepresentation(newAccount.getPassword());
+
+        userResource.resetPassword(credential);
+
+        setRoles(userResource, "user");
+
+        log.info(userResource.toRepresentation().toString());
+        return userResource.toRepresentation();
+    }
+
+    public void removeUser(String accountId) {
+        UserResource userResource = this.keycloak
+                .realm(REALM_NAME)
+                .users()
+                .get(accountId);
+
+        UserRepresentation user = userResource.toRepresentation();
+
+        user.setEnabled(false);
+
+        userResource.update(user);
+    }
+
+    public Boolean checkUsersByEmail(String email){
+        Optional<UserRepresentation> userOptional = this.keycloak
+                .realm(REALM_NAME)
+                .users()
+                .searchByEmail(email, true)
+                .stream()
+                .findFirst();
+
+        if (userOptional.isEmpty()){
+            return false;
+        }
+        log.info("User found by email {}", userOptional.get().getEmail());
+        return true;
+    }
+
+    public UserRepresentation updateUser(String accountId, AccountPatch accountToUpdate) {
+        UserResource userResource = this.keycloak
+                .realm(REALM_NAME)
+                .users()
+                .get(accountId);
+        UserRepresentation user = userResource.toRepresentation();
+
+        //Map<String, List<String>> attributes = new HashMap<>();
+        Map<String, List<String>> attributes = user.getAttributes();
+
+        // check perche' modifico solo i campi passati dalla patch
+        if (StringUtils.hasText(accountToUpdate.getName()))  user.setFirstName(accountToUpdate.getName());
+        if (StringUtils.hasText(accountToUpdate.getSurname()))  user.setLastName((accountToUpdate.getSurname()));
+        if (accountToUpdate.getGender() != null){
+            attributes.put("gender", List.of(Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()).toString()));
+            user.setAttributes(attributes);
+        }
+
+        if (StringUtils.hasText(accountToUpdate.getPassword())){
+            user.setCredentials(
+                    Collections.singletonList(getCredentialRepresentation(accountToUpdate.getPassword()))
+            );
+        };
+
+        userResource.update(user);
+        return user;
+    }
+
+    public boolean validateEmail(String accountId, String validationCode) {
+        //TODO email da keycloak
+        return true;
+    }
+
+    public Optional<String> createAdmin(String accountId) {
+        UserResource userResource = this.keycloak.realm(REALM_NAME)
+                .users()
+                .get(accountId);
+
+        UserRepresentation user = userResource.toRepresentation();
+
+        if(checkRealmRole(userResource, "admin") && checkClientRole(userResource, "admin")){
+            return Optional.empty();
+        }
+
+        setRoles(userResource, "admin");
+
+        return Optional.of(user.getId());
+    }
+
     public void blockUser(String accountId) {
         UserResource userResource = this.keycloak.realm(REALM_NAME)
                 .users()
@@ -72,21 +165,6 @@ public class KeycloakService {
                 .update(user);
     }
 
-    public Optional<String> createAdmin(String accountId) {
-        UserResource userResource = this.keycloak.realm(REALM_NAME)
-                .users()
-                .get(accountId);
-
-        UserRepresentation user = userResource.toRepresentation();
-
-        if(checkRealmRole(userResource, "admin") && checkClientRole(userResource, "admin")){
-            return Optional.empty();
-        }
-
-        setRoles(userResource, "admin");
-
-        return Optional.of(user.getId());
-    }
 
     public List<UserRepresentation> findAllActive(Boolean disabled){
         List<UserRepresentation> usersList = this.keycloak.realm(REALM_NAME)
@@ -97,8 +175,6 @@ public class KeycloakService {
         }
         return usersList;
     }
-
-
 
 
 
@@ -131,79 +207,7 @@ public class KeycloakService {
                 .listEffective().contains(userClientRole);
     }
 
-    public UserRepresentation updateUser(String accountId, AccountPatch accountToUpdate) {
-        UserResource userResource = this.keycloak.realm(REALM_NAME)
-                .users()
-                .get(accountId);
-        UserRepresentation user = userResource.toRepresentation();
 
-        Map<String, List<String>> attributes = new HashMap<>();
-        attributes = user.getAttributes();
-
-        // check perche' modifico solo i campi passati dalla patch
-        if (StringUtils.hasText(accountToUpdate.getName()))  user.setFirstName(accountToUpdate.getName());
-        if (StringUtils.hasText(accountToUpdate.getSurname()))  user.setLastName((accountToUpdate.getSurname()));
-        if (accountToUpdate.getGender() != null){
-            attributes.put("gender", List.of(Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()).toString()));
-            user.setAttributes(attributes);
-        }
-
-        if (StringUtils.hasText(accountToUpdate.getPassword())){
-            user.setCredentials(
-                    Collections.singletonList(getCredentialRepresentation(accountToUpdate.getPassword()))
-            );
-        };
-
-        userResource.update(user);
-        return user;
-    }
-
-    public boolean validateEmail(String accountId, String validationCode) {
-        //TODO email da keycloak
-        return true;
-    }
-
-    public UserRepresentation createUser(Account newAccount){
-        UserResource userResource = createUserResource(newAccount);
-
-        CredentialRepresentation credential = getCredentialRepresentation(newAccount.getPassword());
-
-        userResource.resetPassword(credential);
-
-        setRoles(userResource, "client");
-
-        log.info(userResource.toRepresentation().toString());
-        return userResource.toRepresentation();
-    }
-
-    public void removeUser(String accountId) {
-        UserRepresentation user = this.keycloak.realm(REALM_NAME)
-                .users()
-                .get(accountId)
-                .toRepresentation();
-
-        user.setEnabled(false);
-
-        this.keycloak.realm(REALM_NAME)
-                .users()
-                .get(accountId)
-                .update(user);
-
-    }
-
-    public List<UserRepresentation> getUsersByEmail(String email){
-        List<UserRepresentation> usersList = this.keycloak.realm(REALM_NAME)
-                .users()
-                .searchByEmail(email, true);
-
-
-        log.info("Users found by email {}", usersList
-                .stream()
-                .map(UserRepresentation::getEmail)
-                .collect(Collectors.toList()));
-
-        return usersList;
-    }
 
     private UserResource createUserResource(Account newAccount) {
         UserRepresentation user = new UserRepresentation();
@@ -219,18 +223,30 @@ public class KeycloakService {
         user.setEmailVerified(true);
 
         Response response = this.keycloak.realm(REALM_NAME).users().create(user);
-        log.info("Response: "+response.getStatus()+" "+response.getStatusInfo()+" "+response.getLocation());
+        //log.info("Response: "+response.getStatus()+" "+response.getLocation());
+        //log.info("Response: "+response.getStatus()+" "+response.getStatusInfo()+" "+response.getLocation());
 
-        String userId = CreatedResponseUtil.getCreatedId(response);
+
+        //String userId = CreatedResponseUtil.getCreatedId(response);
+        if(response.getStatus() != 201){
+            throw new AccountAlreadyCreatedException(newAccount.getEmail());
+        }
+        String userId = getCreatedId(response);
         log.info("User created with id "+userId);
         return this.keycloak.realm(REALM_NAME).users().get(userId);
     }
 
+    private static String getCreatedId(Response response) {
+        URI location = response.getLocation();
+        String path = location.getPath();
+        return path.substring(path.lastIndexOf('/') + 1);
+    }
+
 
     private void setRoles(UserResource userResource, String role) {
-        RealmResource realmRepresentation = this.keycloak.realm(REALM_NAME);
+        RealmResource realmResource = this.keycloak.realm(REALM_NAME);
 
-        RoleRepresentation userRealmRole = realmRepresentation
+        RoleRepresentation userRealmRole = realmResource
                 .roles()
                 .get(role)
                 .toRepresentation();
@@ -240,12 +256,12 @@ public class KeycloakService {
                 .add(Collections.singletonList(userRealmRole));
 
 
-        ClientRepresentation accountsMicroClient = realmRepresentation
+        ClientRepresentation accountsMicroClient = realmResource
                 .clients()
                 .findByClientId("accounts-micro")
                 .get(0);
 
-        RoleRepresentation userClientRole = realmRepresentation
+        RoleRepresentation userClientRole = realmResource
                 .clients()
                 .get(accountsMicroClient.getId())
                 .roles()
@@ -286,7 +302,6 @@ public class KeycloakService {
                 .remove(Collections.singletonList(userClientRole));
 
     }
-
 
 
     private static CredentialRepresentation getCredentialRepresentation(String password) {

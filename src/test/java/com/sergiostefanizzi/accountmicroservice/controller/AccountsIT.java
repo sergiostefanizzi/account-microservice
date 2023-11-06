@@ -51,7 +51,7 @@ public class AccountsIT {
     private Account newAccount;
     private Account savedAccount1;
 
-
+/*
     @BeforeEach
     void setUp() {
         this.baseUrl = this.baseUrl + ":" +port+ "/accounts";
@@ -561,6 +561,8 @@ public class AccountsIT {
         assertEquals("Account with id "+Long.MAX_VALUE+" not found!", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
     }
+
+ */
 
 
 

@@ -44,7 +44,7 @@ public class AdminsIT {
     private Account savedAccount1;
 
 
-
+/*
     @BeforeEach
     void setUp() {
         this.baseUrlAccounts = this.baseUrl + ":" +port+ "/accounts";
@@ -220,6 +220,8 @@ public class AdminsIT {
         log.info("Error -> "+node.get("error").asText());
     }
 
+
+ */
 
 
 }

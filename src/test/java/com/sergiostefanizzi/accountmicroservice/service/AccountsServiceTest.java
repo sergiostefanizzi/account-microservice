@@ -191,7 +191,6 @@ class AccountsServiceTest {
                 }
         );
 
-
         verify(this.keycloakService, times(1)).validateEmail(anyString(), anyString());
 
     }

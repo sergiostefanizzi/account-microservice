@@ -16,8 +16,6 @@ spring:
   sql:
     init:
       mode: ${spring.sql.init.mode}
-  autoconfigure:
-    exclude: ${spring.security}
   security:
     oauth2:
       resourceserver:

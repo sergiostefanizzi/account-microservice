@@ -8,6 +8,7 @@ import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.service.AccountsService;
+import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyActivatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotActivedException;
@@ -50,13 +51,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(AccountsController.class)
 //blocca spring security nei test
-//@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 @Slf4j
 class AccountsControllerTest {
 
     @MockBean
     private AccountsService accountsService;
+    @MockBean
+    private KeycloakService keycloakService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -71,7 +74,8 @@ class AccountsControllerTest {
     private AccountJpa savedAccountJpa;
     private AccountPatch accountToUpdate;
     private LocalDateTime validationTime = LocalDateTime.now().minusDays(1);
-    /*
+    private String accountId = UUID.randomUUID().toString();
+
     @BeforeEach
     void setUp() {
         this.newAccount = new Account("pinco.pallino@gmail.com",
@@ -81,14 +85,15 @@ class AccountsControllerTest {
         this.newAccount.setName("Pinco");
         this.newAccount.setSurname("Pallino");
 
+
         this.savedAccount = new Account(this.newAccount.getEmail(),
                 this.newAccount.getBirthdate(),
                 this.newAccount.getGender(),
                 this.newAccount.getPassword());
         this.savedAccount.setName(this.newAccount.getName());
         this.savedAccount.setSurname(this.newAccount.getSurname());
-        this.savedAccount.setId(101L);
-
+        this.savedAccount.setId(this.accountId);
+        /*
         this.savedAccountJpa = new AccountJpa(
                 this.savedAccount.getEmail(),
                 this.savedAccount.getBirthdate(),
@@ -106,6 +111,8 @@ class AccountsControllerTest {
         this.accountToUpdate.setSurname("Pallinetta");
         this.accountToUpdate.setGender(AccountPatch.GenderEnum.FEMALE);
         this.accountToUpdate.setPassword("43hg434j5g4!");
+
+         */
     }
 
     @AfterEach
@@ -133,6 +140,7 @@ class AccountsControllerTest {
                 .andExpect(jsonPath("$.surname").value(this.savedAccount.getSurname()))
                 .andExpect(jsonPath("$.birthdate").value(this.savedAccount.getBirthdate().toString()))
                 .andExpect(jsonPath("$.gender").value(this.savedAccount.getGender().toString()))
+                .andExpect(jsonPath("$.password").doesNotExist())
                 .andReturn();
         // salvo risposta in result per visualizzarla
         String resultAsString = result.getResponse().getContentAsString();
@@ -140,7 +148,7 @@ class AccountsControllerTest {
 
         log.info(accountResult.toString());
     }
-
+/*
     @Test
     void testAddAccountMissing_Name_Surname_Then_201() throws Exception {
         this.newAccount.setName(null);

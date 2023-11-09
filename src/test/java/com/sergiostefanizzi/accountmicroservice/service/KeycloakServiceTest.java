@@ -67,9 +67,15 @@ class KeycloakServiceTest {
     @InjectMocks
     private KeycloakService keycloakService;
     private Account account;
+    private Account savedAccount;
+    private Account savedAccount2;
     private UserRepresentation userRepresentation;
+    private UserRepresentation user1;
+    private UserRepresentation userDisabled;
     private final String REALM_NAME = "social-accounts";
     String accountId = UUID.randomUUID().toString();
+    String accountId1 = UUID.randomUUID().toString();
+    String accountId2 = UUID.randomUUID().toString();
 
     @BeforeEach
     void setUp() {
@@ -92,6 +98,40 @@ class KeycloakServiceTest {
         attributes.put("gender", List.of(this.account.getGender().toString()));
         this.userRepresentation.setAttributes(attributes);
         this.userRepresentation.setEmailVerified(true);
+
+        savedAccount = new Account("pinco.pallino2@prova.com",
+                LocalDate.of(1990,4,4),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        savedAccount.setName("Pinco");
+        savedAccount.setSurname("Pallino");
+        savedAccount.setId(accountId1);
+
+        user1 = new UserRepresentation();
+        user1.setId(savedAccount.getId());
+        user1.setEnabled(true);
+        user1.setEmail(savedAccount.getEmail());
+        user1.setFirstName(savedAccount.getName());
+        user1.setLastName(savedAccount.getSurname());
+        user1.setAttributes(attributes);
+        user1.setEmailVerified(true);
+
+        savedAccount2 = new Account("pinco.pallino3@prova.com",
+                LocalDate.of(1990,4,4),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        savedAccount2.setName("Pinco");
+        savedAccount2.setSurname("Pallino");
+        savedAccount2.setId(accountId2);
+
+        userDisabled = new UserRepresentation();
+        userDisabled.setId(savedAccount2.getId());
+        userDisabled.setEnabled(false);
+        userDisabled.setEmail(savedAccount2.getEmail());
+        userDisabled.setFirstName(savedAccount2.getName());
+        userDisabled.setLastName(savedAccount2.getSurname());
+        userDisabled.setAttributes(attributes);
+        userDisabled.setEmailVerified(true);
     }
 
     @Test
@@ -604,8 +644,9 @@ class KeycloakServiceTest {
         when(this.roleMappingResource.clientLevel(newClient.getId())).thenReturn(this.roleScopeResourceClient);
         when(this.roleScopeResourceClient.listEffective()).thenReturn(clientRoleList);
 
-        this.keycloakService.blockUser(this.account.getId());
+        Optional<String> accountIdOptional = this.keycloakService.blockUser(this.account.getId());
 
+        assertTrue(accountIdOptional.isPresent());
         verify(this.keycloak, times(1)).realm(anyString());
         verify(this.realmResource, times(1)).users();
         verify(this.usersResource, times(1)).get(anyString());
@@ -624,7 +665,97 @@ class KeycloakServiceTest {
         verify(this.clientRoleResource, times(1)).toRepresentation();
         verify(this.roleMappingResource, times(1)).clientLevel(newClient.getId());
         verify(this.roleScopeResourceClient, times(1)).listEffective();
+    }
+
+    @Test
+    public void testBlockUser_AlreadyDisabled_Failed(){
+        this.userRepresentation.setEnabled(false);
+        RoleRepresentation adminRealmRole = new RoleRepresentation("admin","Admin role",false);
+        RoleRepresentation adminClientRole = new RoleRepresentation("client_admin","Admin client role",false);
+        RoleRepresentation userRealmRole = new RoleRepresentation("user","User role",false);
+        RoleRepresentation userClientRole = new RoleRepresentation("client_user","Admin client role",false);
+
+        List<RoleRepresentation> realmRoleList = List.of(userRealmRole, adminRealmRole);
+        List<RoleRepresentation> clientRoleList = List.of(userClientRole, adminClientRole);
+
+        ClientRepresentation newClient = new ClientRepresentation();
+        newClient.setName("accounts-micro");
+
+        when(this.keycloak.realm(anyString())).thenReturn(this.realmResource);
+        when(this.realmResource.users()).thenReturn(this.usersResource);
+        when(this.usersResource.get(anyString())).thenReturn(this.userResource);
+        when(this.userResource.toRepresentation()).thenReturn(this.userRepresentation);
+        //setRoles
+        when(this.realmResource.roles()).thenReturn(this.realmRolesResource);
+        when(this.realmRolesResource.get(anyString())).thenReturn(this.realmRoleResource);
+        when(this.realmRoleResource.toRepresentation()).thenReturn(adminRealmRole);
+        when(this.userResource.roles()).thenReturn(this.roleMappingResource);
+        when(this.roleMappingResource.realmLevel()).thenReturn(this.roleScopeResource);
+        when(this.roleScopeResource.listEffective()).thenReturn(realmRoleList);
+        when(this.realmResource.clients()).thenReturn(this.clientsResource);
+        when(this.clientsResource.findByClientId(anyString())).thenReturn(List.of(newClient));
+        when(this.clientsResource.get(newClient.getId())).thenReturn(this.clientResource);
+        when(this.clientResource.roles()).thenReturn(this.clientRolesResource);
+        when(this.clientRolesResource.get(anyString())).thenReturn(this.clientRoleResource);
+        when(this.clientRoleResource.toRepresentation()).thenReturn(adminClientRole);
+        when(this.roleMappingResource.clientLevel(newClient.getId())).thenReturn(this.roleScopeResourceClient);
+        when(this.roleScopeResourceClient.listEffective()).thenReturn(clientRoleList);
+
+        Optional<String> accountIdOptional = this.keycloakService.blockUser(this.account.getId());
+
+        assertTrue(accountIdOptional.isEmpty());
+        verify(this.keycloak, times(1)).realm(anyString());
+        verify(this.realmResource, times(1)).users();
+        verify(this.usersResource, times(1)).get(anyString());
+        verify(this.userResource, times(1)).toRepresentation();
+        verify(this.realmResource, times(1)).roles();
+        verify(this.realmRolesResource, times(1)).get(anyString());
+        verify(this.realmRoleResource, times(1)).toRepresentation();
+        verify(this.userResource, times(1)).roles();
+        verify(this.roleMappingResource, times(1)).realmLevel();
+        verify(this.roleScopeResource, times(1)).listEffective();
+        verify(this.realmResource, times(1)).clients();
+        verify(this.clientsResource, times(1)).findByClientId(anyString());
+        verify(this.clientsResource, times(1)).get(newClient.getId());
+        verify(this.clientResource, times(1)).roles();
+        verify(this.clientRolesResource, times(1)).get(anyString());
+        verify(this.clientRoleResource, times(1)).toRepresentation();
+        verify(this.roleMappingResource, times(1)).clientLevel(newClient.getId());
+        verify(this.roleScopeResourceClient, times(1)).listEffective();
+    }
+
+    @Test
+    public void testFindAllActive_Success(){
+        List<UserRepresentation> userList = List.of(this.userRepresentation, this.user1, this.userDisabled);
+
+        when(this.keycloak.realm(anyString())).thenReturn(this.realmResource);
+        when(this.realmResource.users()).thenReturn(this.usersResource);
+        when(this.usersResource.list()).thenReturn(userList);
+
+        List<UserRepresentation> userRepresentationList = this.keycloakService.findAllActive(false);
+
+        assertEquals(List.of(this.userRepresentation, this.user1), userRepresentationList);
+        userRepresentationList.forEach(user -> log.info(user.getEmail() + " is "+ (user.isEnabled() ? "enabled":"disabled")));
+        verify(this.keycloak, times(1)).realm(anyString());
+        verify(this.realmResource, times(1)).users();
+        verify(this.usersResource, times(1)).list();
+    }
 
 
+    @Test
+    public void testFindAllActive_Disabled_Success(){
+        List<UserRepresentation> userList = List.of(this.userRepresentation, this.user1, this.userDisabled);
+
+        when(this.keycloak.realm(anyString())).thenReturn(this.realmResource);
+        when(this.realmResource.users()).thenReturn(this.usersResource);
+        when(this.usersResource.list()).thenReturn(userList);
+
+        List<UserRepresentation> userRepresentationList = this.keycloakService.findAllActive(true);
+
+        assertEquals(userList, userRepresentationList);
+        userRepresentationList.forEach(user -> log.info(user.getEmail() + " is "+ (user.isEnabled() ? "enabled":"disabled")));
+        verify(this.keycloak, times(1)).realm(anyString());
+        verify(this.realmResource, times(1)).users();
+        verify(this.usersResource, times(1)).list();
     }
 }

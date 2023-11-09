@@ -4,6 +4,7 @@ import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJp
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.UserRepresentationToAccountConverter;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
@@ -38,7 +39,9 @@ public class AdminsService {
 
     @Transactional
     public void remove(String accountId) {
-        keycloakService.blockUser(accountId);
+         keycloakService.blockUser(accountId)
+                 .orElseThrow(() -> new AccountNotFoundException(accountId));
+
     }
 
 

@@ -147,7 +147,7 @@ public class KeycloakService {
         return Optional.of(user.getId());
     }
 
-    public void blockUser(String accountId) {
+    public Optional<String> blockUser(String accountId) {
         RealmResource realmResource = this.keycloak.realm(REALM_NAME);
 
         UserResource userResource = realmResource
@@ -158,10 +158,14 @@ public class KeycloakService {
 
         setRoles(userResource, realmResource, "admin",true);
 
+        if(!user.isEnabled()){
+            return Optional.empty();
+        }
         user.setEnabled(false);
 
         userResource
                 .update(user);
+        return Optional.of(user.getId());
     }
 
 
@@ -174,25 +178,6 @@ public class KeycloakService {
         }
         return usersList;
     }
-
-
-
-    private boolean checkRealmRole(UserResource userResource, RealmResource realmResource, String role) {
-        RoleRepresentation userRealmRole = realmResource
-                .roles()
-                .get(role)
-                .toRepresentation();
-
-
-        return userResource
-                .roles()
-                .realmLevel()
-                        .listEffective()
-                .contains(userRealmRole);
-    }
-
-
-
 
 
     private UserResource createUserResource(RealmResource realmResource, Account newAccount) {
@@ -243,15 +228,14 @@ public class KeycloakService {
         RoleScopeResource roleScopeResource = roles
                 .realmLevel();
 
-        if(roleScopeResource.listEffective().contains(userRealmRole) && !isUnset){
-            return false;
-        }
-
-        if(isUnset){
-            roleScopeResource
-                    .remove(Collections.singletonList(userRealmRole));
-
-        }else {
+        if(roleScopeResource.listEffective().contains(userRealmRole)){
+            if(isUnset){
+                roleScopeResource
+                        .remove(Collections.singletonList(userRealmRole));
+            }else{
+                return false;
+            }
+        }else{
             roleScopeResource
                     .add(Collections.singletonList(userRealmRole));
         }
@@ -273,16 +257,17 @@ public class KeycloakService {
         RoleScopeResource roleScopeResourceClient = roles
                 .clientLevel(accountsMicroClient.getId());
 
-        if(roleScopeResourceClient.listEffective().contains(userClientRole) && !isUnset){
-            return false;
+        if(roleScopeResourceClient.listEffective().contains(userClientRole)){
+            if(isUnset){
+                roleScopeResourceClient
+                        .remove(Collections.singletonList(userClientRole));
+            }else{
+                return false;
+            }
+        }else{
+            roleScopeResourceClient
+                    .add(Collections.singletonList(userClientRole));
         }
-        if(isUnset){
-            roleScopeResourceClient.remove(Collections.singletonList(userClientRole));
-        }else {
-            roleScopeResourceClient.add(Collections.singletonList(userClientRole));
-        }
-
-
         return true;
     }
 

@@ -21,11 +21,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class AdminsService {
-
-    private final AccountsRepository accountsRepository;
-
-    private final AccountToJpaConverter accountToJpaConverter;
-
     @Autowired
     private KeycloakService keycloakService;
     @Autowired

@@ -1,109 +1,132 @@
 package com.sergiostefanizzi.accountmicroservice.service;
 
 import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
+import com.sergiostefanizzi.accountmicroservice.controller.converter.UserRepresentationToAccountConverter;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Arrays.asList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 @Slf4j
 class AdminsServiceTest {
     @Mock
-    private AccountsRepository accountsRepository;
+    private KeycloakService keycloakService;
     @Mock
-    private AccountToJpaConverter accountToJpaConverter;
-
+    private UserRepresentationToAccountConverter userRepresentationToAccountConverter;
     @InjectMocks
     private AdminsService adminsService;
-    private Account savedAccount1;
-    private Account savedAccount2;
-    private Account savedAccount3;
-    private AccountJpa savedAccountJpa1;
-    private AccountJpa savedAccountJpa2;
-    private AccountJpa savedAccountJpa3;
-    private final LocalDateTime validationTime = LocalDateTime.now();
-    private final List<String> validationCodeList = asList(
-            UUID.randomUUID().toString(),
-            UUID.randomUUID().toString(),
-            UUID.randomUUID().toString()
-    );
-    /*
-    Long accountId = 1L;
+
+    private UserRepresentation userRepresentation;
+    private UserRepresentation userRepresentation1;
+    private UserRepresentation userRepresentation2;
+
+    private Account convertedAccount;
+    private Account convertedAccount1;
+    private Account convertedAccountDisabled;
+
+    String accountId = UUID.randomUUID().toString();
+    String accountId1 = UUID.randomUUID().toString();
+    String accountId2 = UUID.randomUUID().toString();
     @BeforeEach
     void setUp() {
-        this.savedAccount1 = new Account("pinco.pallino@gmail.com",
-                LocalDate.of(1970,3,15),
+        Account account = new Account("pinco.pallino@prova.com",
+                LocalDate.of(1990, 4, 4),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount1.setName("Pinco");
-        this.savedAccount1.setSurname("Pallino");
-        this.savedAccount1.setId(101L);
+        account.setName("Pinco");
+        account.setSurname("Pallino");
+        account.setId(this.accountId);
 
-        this.savedAccountJpa1 = new AccountJpa(
-                this.savedAccount1.getEmail(),
-                this.savedAccount1.getBirthdate(),
-                this.savedAccount1.getGender(),
-                this.savedAccount1.getPassword()
+        this.userRepresentation = new UserRepresentation();
+        this.userRepresentation.setId(account.getId());
+        this.userRepresentation.setEnabled(true);
+        this.userRepresentation.setEmail(account.getEmail());
+        this.userRepresentation.setFirstName(account.getName());
+        this.userRepresentation.setLastName(account.getSurname());
+        Map<String, List<String>> attributes = new HashMap<>();
+        attributes.put("birthdate", List.of(account.getBirthdate().toString()));
+        attributes.put("gender", List.of(account.getGender().toString()));
+        this.userRepresentation.setAttributes(attributes);
+        this.userRepresentation.setEmailVerified(true);
+        this.userRepresentation.setId(account.getId());
+
+        this.convertedAccount = new Account(
+                account.getEmail(),
+                account.getBirthdate(),
+                account.getGender(),
+                null
         );
-        this.savedAccountJpa1.setName(this.savedAccount1.getName());
-        this.savedAccountJpa1.setSurname(this.savedAccount1.getSurname());
-        this.savedAccountJpa1.setValidationCode(validationCodeList.get(0));
-        this.savedAccountJpa1.setValidatedAt(this.validationTime);
-        this.savedAccountJpa1.setId(this.savedAccount1.getId());
-        this.savedAccountJpa1.setIsAdmin(false);
+        this.convertedAccount.setId(account.getId());
+        this.convertedAccount.setName(account.getName());
+        this.convertedAccount.setSurname(account.getSurname());
 
-        this.savedAccount2 = new Account("mario_bros@live.it",
-                LocalDate.of(1995,2,1),
-                Account.GenderEnum.MALE,
-                "dshjdfkdjsf32!");
-        this.savedAccount2.setName("Mario");
-        this.savedAccount2.setSurname("Bros");
-        this.savedAccount2.setId(102L);
+        account.setEmail("pinco.pallino2@prova.com");
+        account.setId(this.accountId1);
 
-        this.savedAccountJpa2 = new AccountJpa(
-                this.savedAccount2.getEmail(),
-                this.savedAccount2.getBirthdate(),
-                this.savedAccount2.getGender(),
-                this.savedAccount2.getPassword()
+        this.userRepresentation1 = new UserRepresentation();
+        this.userRepresentation1.setId(account.getId());
+        this.userRepresentation1.setEnabled(true);
+        this.userRepresentation1.setEmail(account.getEmail());
+        this.userRepresentation1.setFirstName(account.getName());
+        this.userRepresentation1.setLastName(account.getSurname());
+        this.userRepresentation1.setAttributes(attributes);
+        this.userRepresentation1.setEmailVerified(true);
+        this.userRepresentation1.setId(account.getId());
+
+        this.convertedAccount1 = new Account(
+                account.getEmail(),
+                account.getBirthdate(),
+                account.getGender(),
+                null
         );
-        this.savedAccountJpa2.setName(this.savedAccount2.getName());
-        this.savedAccountJpa2.setSurname(this.savedAccount2.getSurname());
-        this.savedAccountJpa2.setValidationCode(validationCodeList.get(1));
-        this.savedAccountJpa2.setValidatedAt(this.validationTime);
-        this.savedAccountJpa2.setId(this.savedAccount2.getId());
-        this.savedAccountJpa2.setIsAdmin(false);
+        this.convertedAccount1.setId(account.getId());
+        this.convertedAccount1.setName(account.getName());
+        this.convertedAccount1.setSurname(account.getSurname());
 
-        this.savedAccount3 = new Account("luigi_bro@outlook.com",
-                LocalDate.of(1995,2,1),
-                Account.GenderEnum.MALE,
-                "dshjdfkdjsf32!");
-        this.savedAccount3.setName("Luigi");
-        this.savedAccount3.setSurname("Bros");
-        this.savedAccount3.setId(103L);
+        account.setEmail("pinco.pallino3@prova.com");
+        account.setId(this.accountId2);
 
-        this.savedAccountJpa3 = new AccountJpa(
-                this.savedAccount3.getEmail(),
-                this.savedAccount3.getBirthdate(),
-                this.savedAccount3.getGender(),
-                this.savedAccount3.getPassword()
+        this.userRepresentation2 = new UserRepresentation();
+        this.userRepresentation2.setId(account.getId());
+        this.userRepresentation2.setEnabled(false);
+        this.userRepresentation2.setEmail(account.getEmail());
+        this.userRepresentation2.setFirstName(account.getName());
+        this.userRepresentation2.setLastName(account.getSurname());
+        this.userRepresentation2.setAttributes(attributes);
+        this.userRepresentation2.setEmailVerified(true);
+        this.userRepresentation2.setId(account.getId());
+
+        this.convertedAccountDisabled = new Account(
+                account.getEmail(),
+                account.getBirthdate(),
+                account.getGender(),
+                null
         );
-        this.savedAccountJpa3.setName(this.savedAccount3.getName());
-        this.savedAccountJpa3.setSurname(this.savedAccount3.getSurname());
-        this.savedAccountJpa3.setValidationCode(validationCodeList.get(2));
-        this.savedAccountJpa3.setValidatedAt(this.validationTime);
-        this.savedAccountJpa3.setId(this.savedAccount3.getId());
-        this.savedAccountJpa3.setIsAdmin(false);
+        this.convertedAccountDisabled.setId(account.getId());
+        this.convertedAccountDisabled.setName(account.getName());
+        this.convertedAccountDisabled.setSurname(account.getSurname());
     }
 
     @AfterEach
@@ -113,113 +136,84 @@ class AdminsServiceTest {
     //FIND ALL
     @Test
     void testFindAllActive_Success() {
-        List<AccountJpa> activeAccountJpaList = asList(
-                this.savedAccountJpa1,
-                this.savedAccountJpa2,
-                this.savedAccountJpa3
-        );
+        List<UserRepresentation> userList = List.of(this.userRepresentation, this.userRepresentation1);
+        when(this.keycloakService.findAllActive(false)).thenReturn(userList);
+        when(this.userRepresentationToAccountConverter.convert(userList.get(0))).thenReturn(this.convertedAccount);
+        when(this.userRepresentationToAccountConverter.convert(userList.get(1))).thenReturn(this.convertedAccount1);
 
-        List<Account> activeAccountList = asList(
-                this.savedAccount1,
-                this.savedAccount2,
-                this.savedAccount3
-        );
-        when(this.accountsRepository.findAllActive()).thenReturn(activeAccountJpaList);
-        when(this.accountToJpaConverter.convertBack(activeAccountJpaList.get(0))).thenReturn(activeAccountList.get(0));
-        when(this.accountToJpaConverter.convertBack(activeAccountJpaList.get(1))).thenReturn(activeAccountList.get(1));
-        when(this.accountToJpaConverter.convertBack(activeAccountJpaList.get(2))).thenReturn(activeAccountList.get(2));
+        List<Account> accountList = this.adminsService.findAll(false);
 
-        List<Account> returnedList = this.adminsService.findAll(false);
-
-        assertEquals(activeAccountList, returnedList);
-        verify(this.accountsRepository, times(1)).findAllActive();
-        verify(this.accountsRepository, times(0)).findAllActiveAndDeleted();
-        verify(this.accountToJpaConverter, times(3)).convertBack(any(AccountJpa.class));
-        log.info(returnedList.toString());
+        log.info(accountList.toString());
+        assertEquals(List.of(this.convertedAccount, this.convertedAccount1), accountList);
+        verify(this.keycloakService, times(1)).findAllActive(anyBoolean());
+        verify(this.userRepresentationToAccountConverter, times(2)).convert(any(UserRepresentation.class));
 
     }
 
+
     @Test
     void testFindAllRemoved_Success() {
-        this.savedAccountJpa2.setValidatedAt(null);
-        List<AccountJpa> activeAndRemovedAccountJpaList = asList(
-                this.savedAccountJpa1,
-                this.savedAccountJpa2,
-                this.savedAccountJpa3
-        );
+        List<UserRepresentation> userList = List.of(this.userRepresentation, this.userRepresentation1, this.userRepresentation2);
+        when(this.keycloakService.findAllActive(false)).thenReturn(userList);
+        when(this.userRepresentationToAccountConverter.convert(userList.get(0))).thenReturn(this.convertedAccount);
+        when(this.userRepresentationToAccountConverter.convert(userList.get(1))).thenReturn(this.convertedAccount1);
+        when(this.userRepresentationToAccountConverter.convert(userList.get(2))).thenReturn(this.convertedAccountDisabled);
 
-        List<Account> activeAndRemovedAccountList = asList(
-                this.savedAccount1,
-                this.savedAccount2,
-                this.savedAccount3
-        );
-        when(this.accountsRepository.findAllActiveAndDeleted()).thenReturn(activeAndRemovedAccountJpaList);
-        when(this.accountToJpaConverter.convertBack(activeAndRemovedAccountJpaList.get(0))).thenReturn(activeAndRemovedAccountList.get(0));
-        when(this.accountToJpaConverter.convertBack(activeAndRemovedAccountJpaList.get(1))).thenReturn(activeAndRemovedAccountList.get(1));
-        when(this.accountToJpaConverter.convertBack(activeAndRemovedAccountJpaList.get(2))).thenReturn(activeAndRemovedAccountList.get(2));
+        List<Account> accountList = this.adminsService.findAll(false);
 
-        List<Account> returnedList = this.adminsService.findAll(true);
 
-        assertEquals(activeAndRemovedAccountList, returnedList);
-        verify(this.accountsRepository, times(1)).findAllActiveAndDeleted();
-        verify(this.accountsRepository, times(0)).findAllActive();
-        verify(this.accountToJpaConverter, times(3)).convertBack(any(AccountJpa.class));
-
-        log.info(returnedList.toString());
+        log.info(accountList.toString());
+        assertEquals(List.of(this.convertedAccount, this.convertedAccount1, this.convertedAccountDisabled), accountList);
+        verify(this.keycloakService, times(1)).findAllActive(anyBoolean());
+        verify(this.userRepresentationToAccountConverter, times(3)).convert(any(UserRepresentation.class));
     }
 
     //SAVE
     @Test
     void testSave_Success(){
-        Admin newAdmin = new Admin(this.savedAccountJpa1.getId());
-        when(this.accountsRepository.getReferenceById(anyLong())).thenReturn(this.savedAccountJpa1);
-        when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(this.savedAccountJpa1);
-        when(this.accountJpaToAdminConverter.convert(any(AccountJpa.class))).thenReturn(newAdmin);
+        when(this.keycloakService.createAdmin(anyString())).thenReturn(Optional.of(this.accountId));
 
-        Admin returnedAdmin = this.adminsService.save(this.savedAccountJpa1.getId());
+        String adminId = this.adminsService.save(this.accountId);
 
-        assertEquals(newAdmin, returnedAdmin);
-        verify(this.accountsRepository, times(1)).getReferenceById(anyLong());
-        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
-        verify(this.accountJpaToAdminConverter, times(1)).convert(any(AccountJpa.class));
-
-        log.info(returnedAdmin.toString());
+        assertEquals(this.accountId, adminId);
+        log.info("New admin created "+adminId);
+        verify(this.keycloakService, times(1)).createAdmin(anyString());
     }
 
 
     @Test
     void testSave_AlreadyCreated_Failed(){
-        this.savedAccountJpa1.setIsAdmin(true);
-
-        when(this.accountsRepository.getReferenceById(anyLong())).thenReturn(this.savedAccountJpa1);
+        when(this.keycloakService.createAdmin(anyString())).thenReturn(Optional.empty());
 
         assertThrows(AdminAlreadyCreatedException.class, () ->
-                this.adminsService.save(this.savedAccountJpa1.getId())
+                this.adminsService.save(this.accountId)
         );
 
-        verify(this.accountsRepository, times(1)).getReferenceById(anyLong());
-        verify(this.accountsRepository, times(0)).save(any(AccountJpa.class));
-        verify(this.accountJpaToAdminConverter, times(0)).convert(any(AccountJpa.class));
+        verify(this.keycloakService, times(1)).createAdmin(anyString());
 
     }
 
     //REMOVE
     @Test
     void testRemove_ByAdmin_Success(){
-        when(this.accountsRepository.getReferenceById(anyLong())).thenReturn(this.savedAccountJpa1);
-        when(this.accountsRepository.save(any(AccountJpa.class))).thenReturn(this.savedAccountJpa1);
+        when(this.keycloakService.blockUser(anyString())).thenReturn(Optional.of(this.accountId));
 
-        this.adminsService.remove(this.savedAccountJpa1.getId());
+        this.adminsService.remove(this.accountId);
 
-        assertNotNull(this.savedAccountJpa1.getDeletedAt());
-        verify(this.accountsRepository, times(1)).getReferenceById(anyLong());
-        verify(this.accountsRepository, times(1)).save(any(AccountJpa.class));
-
-        log.info(this.savedAccountJpa1.getDeletedAt().toString());
+        verify(this.keycloakService, times(1)).blockUser(anyString());
     }
 
-     */
 
+    @Test
+    void testRemove_ByAdmin_Failed(){
+        when(this.keycloakService.blockUser(anyString())).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () ->
+                this.adminsService.remove(this.accountId)
+        );
+
+        verify(this.keycloakService, times(1)).blockUser(anyString());
+    }
 
 
 

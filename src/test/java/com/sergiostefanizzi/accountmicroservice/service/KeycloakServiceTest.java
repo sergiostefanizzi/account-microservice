@@ -67,8 +67,6 @@ class KeycloakServiceTest {
     @InjectMocks
     private KeycloakService keycloakService;
     private Account account;
-    private Account savedAccount;
-    private Account savedAccount2;
     private UserRepresentation userRepresentation;
     private UserRepresentation user1;
     private UserRepresentation userDisabled;
@@ -99,8 +97,8 @@ class KeycloakServiceTest {
         this.userRepresentation.setAttributes(attributes);
         this.userRepresentation.setEmailVerified(true);
 
-        savedAccount = new Account("pinco.pallino2@prova.com",
-                LocalDate.of(1990,4,4),
+        Account savedAccount = new Account("pinco.pallino2@prova.com",
+                LocalDate.of(1990, 4, 4),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
         savedAccount.setName("Pinco");
@@ -116,8 +114,8 @@ class KeycloakServiceTest {
         user1.setAttributes(attributes);
         user1.setEmailVerified(true);
 
-        savedAccount2 = new Account("pinco.pallino3@prova.com",
-                LocalDate.of(1990,4,4),
+        Account savedAccount2 = new Account("pinco.pallino3@prova.com",
+                LocalDate.of(1990, 4, 4),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
         savedAccount2.setName("Pinco");
@@ -283,8 +281,8 @@ class KeycloakServiceTest {
 
         assertEquals(returnedUser, this.userRepresentation);
         log.info(returnedUser.getEmail());
-        verify(this.keycloak, times(3)).realm(anyString());
-        verify(this.realmResource, times(2)).users();
+        verify(this.keycloak, times(1)).realm(anyString());
+        verify(this.realmResource, times(1)).users();
         verify(this.usersResource, times(1)).create(any(UserRepresentation.class));
         verify(this.response, times(1)).getStatus();
         verify(this.response, times(1)).getLocation();
@@ -293,9 +291,9 @@ class KeycloakServiceTest {
         verify(this.realmResource, times(1)).roles();
         verify(this.realmRolesResource, times(2)).get(anyString());
         verify(this.realmRoleResource, times(2)).toRepresentation();
-        verify(this.userResource, times(2)).roles();
+        verify(this.userResource, times(1)).roles();
         verify(this.roleMappingResource, times(1)).realmLevel();
-        verify(this.realmResource, times(2)).clients();
+        verify(this.realmResource, times(1)).clients();
         verify(this.clientsResource, times(1)).findByClientId(anyString());
         verify(this.clientsResource, times(1)).get(newClient.getId());
         verify(this.clientResource, times(1)).roles();

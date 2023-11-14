@@ -128,7 +128,7 @@ public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         log.error(ex.getMessage(),ex);
-        String error = ex.getMessage();
+        String error = "Required request parameter is missing";
         Map<String, String> body = new HashMap<>();
         body.put("error", error);
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
@@ -151,16 +151,17 @@ public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleTypeMismatch(TypeMismatchException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         log.error(ex.getMessage(),ex);
-        String error = ex.getMessage();
+        String error = "Type mismatch";
         Map<String, String> body = new HashMap<>();
         body.put("error", error);
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
+
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         log.error(ex.getMessage(),ex);
-        String error = ex.getMessage();
+        String error = "Message is not readable";
         Map<String, String> body = new HashMap<>();
         body.put("error", error);
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
@@ -170,7 +171,7 @@ public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotWritable(HttpMessageNotWritableException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         log.error(ex.getMessage(),ex);
-        String error = ex.getMessage();
+        String error = "Message is not writable";
         Map<String, String> body = new HashMap<>();
         body.put("error", error);
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);

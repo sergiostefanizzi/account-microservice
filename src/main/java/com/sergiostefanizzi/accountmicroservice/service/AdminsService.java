@@ -6,7 +6,6 @@ import com.sergiostefanizzi.accountmicroservice.controller.converter.UserReprese
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import jakarta.transaction.Transactional;
@@ -39,7 +38,6 @@ public class AdminsService {
 
     }
 
-
     @Transactional
     public List<Account> findAll(Boolean removedAccount) {
         if(!removedAccount){
@@ -48,11 +46,5 @@ public class AdminsService {
             return this.keycloakService.findAllActive(true).stream().map(this.userRepresentationToAccountConverter::convert).toList();
         }
     }
-
-
-
-
-
-
 
 }

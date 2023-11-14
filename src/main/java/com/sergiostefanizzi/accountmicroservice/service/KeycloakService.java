@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public class KeycloakService {
     @Autowired
     private Keycloak keycloak;
-    private final String REALM_NAME = "social-accounts";
+    private String REALM_NAME = "social-accounts";
 
     public Boolean checksEmailValidated(String accountId) {
         try{

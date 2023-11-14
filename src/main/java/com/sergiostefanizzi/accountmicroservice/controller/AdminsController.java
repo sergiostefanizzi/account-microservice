@@ -2,7 +2,6 @@ package com.sergiostefanizzi.accountmicroservice.controller;
 
 import com.sergiostefanizzi.accountmicroservice.api.AdminsApi;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.service.AdminsService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;

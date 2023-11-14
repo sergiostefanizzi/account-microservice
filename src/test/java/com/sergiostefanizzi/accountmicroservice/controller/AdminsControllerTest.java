@@ -3,8 +3,8 @@ package com.sergiostefanizzi.accountmicroservice.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.Admin;
 import com.sergiostefanizzi.accountmicroservice.service.AdminsService;
+import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +17,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,9 +28,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.hasSize;
@@ -44,31 +48,65 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(AdminsController.class)
 //blocca spring security nei test
-//@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 @Slf4j
 class AdminsControllerTest {
     @MockBean
     private AdminsService adminsService;
     @MockBean
-    private AccountsRepository accountsRepository;
+    private KeycloakService keycloakService;
+    @MockBean
+    private SecurityContext securityContext;
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
+    private Account savedAccount;
     private Account savedAccount1;
     private Account savedAccount2;
     private Account savedAccount3;
-    /*
+    private JwtAuthenticationToken jwtAuthenticationToken;
+    private final String accountId = UUID.randomUUID().toString();
+    private final String accountId1 = UUID.randomUUID().toString();
+    private final String accountId2 = UUID.randomUUID().toString();
+    private final String accountId3 = UUID.randomUUID().toString();
+    private final String invalidId = UUID.randomUUID().toString();
+
     @BeforeEach
     void setUp() {
-        this.savedAccount1 = new Account("pinco.pallino@gmail.com",
+
+        this.savedAccount = new Account("pinco.pallino@gmail.com",
+                LocalDate.of(1990,4,4),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        this.savedAccount.setName("Pinco");
+        this.savedAccount.setSurname("Pallino");
+        this.savedAccount.setId(this.accountId);
+
+        SecurityContextHolder.setContext(securityContext);
+
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("alg","HS256");
+        headers.put("typ","JWT");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("sub",this.savedAccount.getId());
+        Jwt jwt = new Jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+                Instant.now(),
+                Instant.MAX,
+                headers,
+                claims);
+
+        this.jwtAuthenticationToken = new JwtAuthenticationToken(jwt);
+
+
+        this.savedAccount1 = new Account("giuseppe.verdi@gmail.com",
                 LocalDate.of(1970,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount1.setName("Pinco");
-        this.savedAccount1.setSurname("Pallino");
-        this.savedAccount1.setId(101L);
+        this.savedAccount1.setName("Giuseppe");
+        this.savedAccount1.setSurname("Verdi");
+        this.savedAccount1.setId(accountId1);
 
         this.savedAccount2 = new Account("mario_bros@live.it",
                 LocalDate.of(1995,2,1),
@@ -76,7 +114,7 @@ class AdminsControllerTest {
                 "dshjdfkdjsf32!");
         this.savedAccount2.setName("Mario");
         this.savedAccount2.setSurname("Bros");
-        this.savedAccount2.setId(102L);
+        this.savedAccount2.setId(accountId2);
 
         this.savedAccount3 = new Account("luigi_bro@outlook.com",
                 LocalDate.of(1995,2,1),
@@ -84,7 +122,7 @@ class AdminsControllerTest {
                 "dshjdfkdjsf32!");
         this.savedAccount3.setName("Luigi");
         this.savedAccount3.setSurname("Bros");
-        this.savedAccount3.setId(103L);
+        this.savedAccount3.setId(accountId3);
     }
 
     @AfterEach
@@ -93,44 +131,28 @@ class AdminsControllerTest {
 
     @Test
     void testAddAdminById_Then_201() throws Exception{
-        Long accountId = this.savedAccount1.getId();
-        Admin newAdmin = new Admin(accountId);
 
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.of(accountId));
-        when(this.adminsService.save(anyLong())).thenReturn(newAdmin);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
 
-        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",accountId)
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+
+        when(this.adminsService.save(anyString())).thenReturn(this.accountId);
+
+        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.accountId)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.*", hasSize(1)))
-                .andExpect(jsonPath("$.id").value(newAdmin.getId()))
+                .andExpect(jsonPath("$").value(this.accountId))
                 .andReturn();
 
         // salvo risposta in result per visualizzarla
         String resultAsString = result.getResponse().getContentAsString();
-        Admin adminResult = this.objectMapper.readValue(resultAsString, Admin.class);
-
-        log.info(adminResult.toString());
+        log.info("New Admin ID --> "+resultAsString);
     }
 
-    @Test
-    void testAddAdminById_Then_400() throws Exception{
-        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}","IdNotLong")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest())
-                .andExpect(res-> assertTrue(res.getResolvedException() instanceof NumberFormatException))
-                .andExpect(jsonPath("$.error").value("ID is not valid!"))
-                .andReturn();
-
-        String resultAsString = result.getResponse().getContentAsString();
-        log.info("Errors\n"+resultAsString);
-    }
 
     @Test
     void testAddAdminById_Then_404() throws Exception{
-        Long accountId = this.savedAccount1.getId();
-
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.empty());
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
 
         MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",accountId)
                         .accept(MediaType.APPLICATION_JSON))
@@ -146,10 +168,10 @@ class AdminsControllerTest {
 
     @Test
     void testAddAdminById_Then_409() throws Exception{
-        Long accountId = this.savedAccount1.getId();
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
 
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.of(accountId));
-        when(this.adminsService.save(anyLong())).thenThrow(new AdminAlreadyCreatedException(accountId));
+        when(this.adminsService.save(anyString())).thenThrow(new AdminAlreadyCreatedException(accountId));
 
         MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",accountId)
                         .accept(MediaType.APPLICATION_JSON))
@@ -164,9 +186,8 @@ class AdminsControllerTest {
 
     @Test
     void deleteAdminById_Then_204() throws Exception{
-        Long accountId = this.savedAccount1.getId();
-
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.of(accountId));
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
 
         this.mockMvc.perform(delete("/admins/{accountId}",accountId)
                         .accept(MediaType.APPLICATION_JSON))
@@ -175,23 +196,8 @@ class AdminsControllerTest {
     }
 
     @Test
-    void deleteAdminById_Then_400() throws Exception{
-        MvcResult result = this.mockMvc.perform(delete("/admins/{accountId}","IdNotLong")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest())
-                .andExpect(res-> assertTrue(res.getResolvedException() instanceof NumberFormatException))
-                .andExpect(jsonPath("$.error").value("ID is not valid!"))
-                .andReturn();
-
-        String resultAsString = result.getResponse().getContentAsString();
-        log.info("Errors\n"+resultAsString);
-    }
-
-    @Test
     void deleteAdminById_Then_404() throws Exception{
-        Long accountId = this.savedAccount1.getId();
-
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.empty());
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
 
         MvcResult result = this.mockMvc.perform(delete("/admins/{accountId}",accountId)
                         .accept(MediaType.APPLICATION_JSON))
@@ -251,7 +257,7 @@ class AdminsControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(res-> assertTrue(res.getResolvedException() instanceof MethodArgumentTypeMismatchException))
-                .andExpect(jsonPath("$.error").value("Failed to convert value of type 'java.lang.String' to required type 'java.lang.Boolean'; Invalid boolean value [NotBoolean]"))
+                .andExpect(jsonPath("$.error").value("Type mismatch"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();
@@ -265,14 +271,19 @@ class AdminsControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(res-> assertTrue(res.getResolvedException() instanceof MissingServletRequestParameterException))
-                .andExpect(jsonPath("$.error").value("Required request parameter 'removedAccount' for method parameter type Boolean is not present"))
+                .andExpect(jsonPath("$.error").value("Required request parameter is missing"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();
         log.info("Errors\n"+resultAsString);
     }
 
-     */
+
+
+
+
+
+
 
 
 }

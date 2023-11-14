@@ -35,9 +35,6 @@ public class AccountsController implements AccountsApi {
 
     @Override
     public ResponseEntity<Void> deleteAccountById(String accountId) {
-        if (!accountId.equals(getJwtAccountId())){
-            throw new ActionForbiddenException(accountId);
-        }
         this.accountsService.remove(accountId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -45,27 +42,15 @@ public class AccountsController implements AccountsApi {
 
     @Override
     public ResponseEntity<Void> activateAccountById(String accountId, String validationCode) {
-        if (!accountId.equals(getJwtAccountId())){
-            throw new ActionForbiddenException(accountId);
-        }
         this.accountsService.active(accountId, validationCode);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Override
     public ResponseEntity<Account> updateAccountById(String accountId, AccountPatch accountPatch) {
-        if (!accountId.equals(getJwtAccountId())){
-            throw new ActionForbiddenException(accountId);
-        }
         Account updatedAccount = this.accountsService.update(accountId, accountPatch);
         return new ResponseEntity<>(updatedAccount, HttpStatus.OK);
     }
 
-    private static String getJwtAccountId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        JwtAuthenticationToken oauthToken = (JwtAuthenticationToken) authentication;
-        String jwtAccountId = oauthToken.getToken().getClaim("sub");
-        log.info("TOKEN ACCOUNT ID --> "+oauthToken.getToken().getClaim("sub"));
-        return jwtAccountId;
-    }
+
 }

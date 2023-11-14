@@ -1,29 +1,26 @@
 package com.sergiostefanizzi.accountmicroservice.controller;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
-import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.UserResource;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,6 +35,8 @@ import static org.junit.jupiter.api.Assertions.*;
 public class AccountsIT {
     @LocalServerPort
     private int port;
+    @Autowired
+    private Keycloak keycloak;
 
     private String baseUrl = "http://localhost";
 
@@ -46,14 +45,15 @@ public class AccountsIT {
 
     @Autowired
     private ObjectMapper objectMapper;
-    @Autowired
-    private AccountsRepository accountsRepository;
     private Account newAccount;
     private Account savedAccount1;
+    private Account savedAccount2;
+    private Account savedAccount3;
+    private String invalidId = UUID.randomUUID().toString();
 
-/*
+
     @BeforeEach
-    void setUp() {
+    void setUp() throws JsonProcessingException {
         this.baseUrl = this.baseUrl + ":" +port+ "/accounts";
 
         this.newAccount = new Account("mario.rossi@gmail.com",
@@ -69,7 +69,100 @@ public class AccountsIT {
                 "dshjdfkdjsf32!");
         this.savedAccount1.setName("Pinco");
         this.savedAccount1.setSurname("Pallino");
-        this.savedAccount1.setId(101L);
+        this.savedAccount1.setId("c8318aba-2312-46bf-a9a9-872102df1ee5");
+
+
+        this.savedAccount2 = new Account("pinco.pallino2@gmail.com",
+                LocalDate.of(1970,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        this.savedAccount2.setName("Pinco");
+        this.savedAccount2.setSurname("Pallino");
+        this.savedAccount2.setId("da9bab94-e963-4803-b262-50b925ed7540");
+
+        this.savedAccount3 = new Account("pinco.pallino3@gmail.com",
+                LocalDate.of(1970,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        this.savedAccount3.setName("Pinco");
+        this.savedAccount3.setSurname("Pallino");
+        this.savedAccount3.setId("28ac0564-8f56-44d6-ada5-1050753cfbbd");
+
+    }
+
+    private String getAccessToken(Account account) throws JsonProcessingException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        String loginBody = "grant_type=password&client_id=accounts-micro&username="+account.getEmail()+"&password="+account.getPassword();
+        HttpEntity<String> request = new HttpEntity<>(loginBody,headers);
+
+        ResponseEntity<String> responseLogin = this.testRestTemplate.exchange(
+                "http://localhost:8082/realms/social-accounts/protocol/openid-connect/token",
+                HttpMethod.POST,
+                request,
+                String.class);
+
+
+        assertEquals(HttpStatus.OK, responseLogin.getStatusCode());
+        JsonNode node = this.objectMapper.readTree(responseLogin.getBody());
+        String accessToken = node.get("access_token").asText();
+        log.info("Access token = "+accessToken);
+        return accessToken;
+    }
+
+    private void restoreUpdatedAccount(AccountPatch accountPatch) throws JsonProcessingException {
+        this.savedAccount3.setName(accountPatch.getName());
+        this.savedAccount3.setSurname(accountPatch.getSurname());
+        this.savedAccount3.setGender(Account.GenderEnum.valueOf(accountPatch.getGender().toString()));
+        this.savedAccount3.setPassword(accountPatch.getPassword());
+        String accessToken = getAccessToken(this.savedAccount3);
+
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+
+        AccountPatch accountToUpdate = new AccountPatch();
+        accountToUpdate.setName("Pinco");
+        accountToUpdate.setSurname("Pallino");
+        accountToUpdate.setGender(AccountPatch.GenderEnum.MALE);
+        accountToUpdate.setPassword("dshjdfkdjsf32!");
+
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountToUpdate, updateHeaders);
+        ResponseEntity<Account> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.PATCH,
+                request,
+                Account.class,
+                this.savedAccount3.getId());
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertInstanceOf(Account.class, response.getBody());
+        Account updatedAccount = response.getBody();
+        assertEquals(accountToUpdate.getName(),updatedAccount.getName());
+        assertEquals(accountToUpdate.getSurname(),updatedAccount.getSurname());
+        assertEquals(accountToUpdate.getGender().toString(),updatedAccount.getGender().toString());
+
+        // visualizzo il profilo salvato
+        log.info(updatedAccount.toString());
+
+        this.savedAccount3.setName(accountToUpdate.getName());
+        this.savedAccount3.setSurname(accountToUpdate.getSurname());
+        this.savedAccount3.setGender(Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()));
+        this.savedAccount3.setPassword(accountToUpdate.getPassword());
+
+    }
+
+    private void restoreDeletedUser() {
+        UserResource userResource = this.keycloak.realm("social-accounts")
+                .users()
+                .get(this.savedAccount1.getId());
+        UserRepresentation userRepresentation = userResource
+                .toRepresentation();
+
+        userRepresentation.setEnabled(true);
+
+        userResource
+                .update(userRepresentation);
     }
 
 
@@ -91,13 +184,15 @@ public class AccountsIT {
         this.newAccount.setId(savedAccount.getId());
         assertEquals(this.newAccount, savedAccount);
 
-        // visulazzo il profilo salvato
+        // visualizzo il profilo salvato
         log.info(savedAccount.toString());
+
+        this.keycloak.realm("social-accounts").users().get(this.newAccount.getId()).remove();
     }
 
     @Test
     void testAddAccountMissing_Name_Surname_Then_201(){
-        this.newAccount.setEmail("mario.rossi2@gmail.com");
+        //this.newAccount.setEmail("mario.rossi2@gmail.com");
         this.newAccount.setName(null);
         this.newAccount.setSurname(null);
         HttpEntity<Account> request = new HttpEntity<>(this.newAccount);
@@ -115,8 +210,10 @@ public class AccountsIT {
         this.newAccount.setId(savedAccount.getId());
         assertEquals(this.newAccount, savedAccount);
 
-        // visulazzo il profilo salvato
+        // visualizzo il profilo salvato
         log.info(savedAccount.toString());
+
+        this.keycloak.realm("social-accounts").users().get(this.newAccount.getId()).remove();
     }
 
     // Add Account Failed
@@ -214,7 +311,7 @@ public class AccountsIT {
         ((ObjectNode) jsonNode).put("birthdate","202308-05");
         String newAccountJson = this.objectMapper.writeValueAsString(jsonNode);
 
-        String error = "JSON parse error: Cannot deserialize value of type `java.time.LocalDate` from String \"202308-05\": Failed to deserialize java.time.LocalDate: (java.time.format.DateTimeParseException) Text '202308-05' could not be parsed at index 0";
+        String error = "Message is not readable";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -265,8 +362,7 @@ public class AccountsIT {
         ((ObjectNode) jsonNode).put("gender","male");
         String newAccountJson = this.objectMapper.writeValueAsString(jsonNode);
 
-        String error = "JSON parse error: Cannot construct instance of `com.sergiostefanizzi.accountmicroservice.model.Account$GenderEnum`, problem: Unexpected value 'male'";
-
+        String error = "Message is not readable";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> request = new HttpEntity<>(newAccountJson, headers);
@@ -291,63 +387,83 @@ public class AccountsIT {
     @Test
     void
     testDeleteAccountById_Then_204() throws Exception{
-        Long accountToDeleteId = 107L;
+        String accessToken = getAccessToken(this.savedAccount1);
+
+        HttpHeaders deleteHeaders = new HttpHeaders();
+        deleteHeaders.setBearerAuth(accessToken);
+
         ResponseEntity<Void> responseDelete = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.DELETE,
-                HttpEntity.EMPTY,
+                new HttpEntity<>(deleteHeaders),
                 Void.class,
-                accountToDeleteId);
+                this.savedAccount1.getId());
         assertEquals(HttpStatus.NO_CONTENT, responseDelete.getStatusCode());
 
+        restoreDeletedUser();
     }
 
+
+
     // Delete Account Failed
+
+    @Test
+    void testDeleteAccountById_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount1);
+
+        HttpHeaders deleteHeaders = new HttpHeaders();
+        deleteHeaders.setBearerAuth(accessToken);
+        ResponseEntity<String> responseDelete = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.DELETE,
+                new HttpEntity<>(deleteHeaders),
+                String.class,
+                this.savedAccount2.getId());
+        JsonNode node = this.objectMapper.readTree(responseDelete.getBody());
+        assertEquals(HttpStatus.FORBIDDEN, responseDelete.getStatusCode());
+        assertEquals("Forbidden: Account with id "+this.savedAccount1.getId()+" can not perform this action", node.get("error").asText());
+        log.info("Error --> "+node.get("error").asText());
+    }
+
     @Test
     void testDeleteAccountById_Then_404() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount1);
+
         ResponseEntity<String> responseDelete = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.DELETE,
                 HttpEntity.EMPTY,
                 String.class,
-                Long.MAX_VALUE);
+                invalidId);
         JsonNode node = this.objectMapper.readTree(responseDelete.getBody());
         assertEquals(HttpStatus.NOT_FOUND, responseDelete.getStatusCode());
-        assertEquals("Account with id "+Long.MAX_VALUE+" not found!", node.get("error").asText());
+        assertEquals("Account with id "+invalidId+" not found!", node.get("error").asText());
         log.info("Error --> "+node.get("error").asText());
     }
 
-    @Test
-    void testDeleteAccountById_Then_400() throws Exception{
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/IdNotLong",
-                HttpMethod.DELETE,
-                HttpEntity.EMPTY,
-                String.class);
-
-        JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("ID is not valid!", node.get("error").asText());
-        log.info("Error --> "+node.get("error").asText());
-    }
 
     // Update Account SUCCESS
 
     @Test
     void testUpdateAccountBy_Then_200() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount3);
+        
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+        
         AccountPatch accountToUpdate = new AccountPatch();
         accountToUpdate.setName("Nuovonome");
         accountToUpdate.setSurname("Nuovocognome");
         accountToUpdate.setGender(AccountPatch.GenderEnum.FEMALE);
         accountToUpdate.setPassword("NewPassword34#");
 
-        HttpEntity<AccountPatch> request = new HttpEntity<>(accountToUpdate);
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountToUpdate, updateHeaders);
         ResponseEntity<Account> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.PATCH,
                 request,
                 Account.class,
-                106L);
+                this.savedAccount3.getId());
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -357,47 +473,67 @@ public class AccountsIT {
         assertEquals(accountToUpdate.getSurname(),updatedAccount.getSurname());
         assertEquals(accountToUpdate.getGender().toString(),updatedAccount.getGender().toString());
 
-
-        // visulazzo il profilo salvato
+        // visualizzo il profilo salvato
         log.info(updatedAccount.toString());
+
+        restoreUpdatedAccount(accountToUpdate);
     }
 
     // Update Account Failed
     @Test
-    void testUpdateAccountById_Then_404() throws Exception{
+    void testUpdateAccountById_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount3);
+
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+
         AccountPatch accountPatchToUpdate = new AccountPatch();
 
-        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate, updateHeaders);
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl + "/{accountId}",
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                Long.MAX_VALUE);
+                this.savedAccount2.getId());
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("Forbidden: Account with id "+this.savedAccount3.getId()+" can not perform this action", node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
+    }
+
+    @Test
+    void testUpdateAccountById_Then_404() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount3);
+
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+
+        AccountPatch accountPatchToUpdate = new AccountPatch();
+
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate, updateHeaders);
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl + "/{accountId}",
+                HttpMethod.PATCH,
+                request,
+                String.class,
+                invalidId);
 
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Account with id "+Long.MAX_VALUE+" not found!", node.get("error").asText());
+        assertEquals("Account with id "+invalidId+" not found!", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
     }
 
-    @Test
-    void testUpdateAccountById_Then_400() throws Exception {
-
-        HttpEntity<AccountPatch> request = new HttpEntity<>(new AccountPatch());
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl + "/IdNotLong",
-                HttpMethod.PATCH, request,
-                String.class);
-
-        JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("ID is not valid!", node.get("error").asText());
-        log.info("Error --> " + node.get("error").asText());
-    }
 
     @Test
     void testUpdateAccountById_Invalid_NameSurnamePassword_Then_400() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount3);
+
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+
         AccountPatch accountPatchToUpdate = new AccountPatch();
         accountPatchToUpdate.setName("M4");
         accountPatchToUpdate.setSurname("R5");
@@ -412,13 +548,13 @@ public class AccountsIT {
                 "surname must match \"^[a-zA-Z]+$\"");
 
 
-        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate, updateHeaders);
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                106L);
+                this.savedAccount3.getId());
 
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -432,29 +568,39 @@ public class AccountsIT {
 
     @Test
     void testUpdateAccountById_Invalid_Gender_Then_400() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount3);
+
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+        updateHeaders.setContentType(MediaType.APPLICATION_JSON);
+
         AccountPatch accountPatchToUpdate = new AccountPatch();
 
         JsonNode jsonNode = this.objectMapper.readTree(this.objectMapper.writeValueAsString(accountPatchToUpdate));
         ((ObjectNode) jsonNode).put("gender","female");
         String accountToUpdateJson = this.objectMapper.writeValueAsString(jsonNode);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> request = new HttpEntity<>(accountToUpdateJson,headers);
+        HttpEntity<String> request = new HttpEntity<>(accountToUpdateJson,updateHeaders);
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                106L);
+                this.savedAccount3.getId());
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("JSON parse error: Cannot construct instance of `com.sergiostefanizzi.accountmicroservice.model.AccountPatch$GenderEnum`, problem: Unexpected value 'female'", node.get("error").asText());
+        assertEquals("Message is not readable", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
     }
 
     @Test
     void testUpdateAccountById_FieldsSizeError_Then_400() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount3);
+
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+        updateHeaders.setContentType(MediaType.APPLICATION_JSON);
+
         //account con campi aggiornati
         AccountPatch accountPatchToUpdate = new AccountPatch();
         accountPatchToUpdate.setName("M");
@@ -467,13 +613,13 @@ public class AccountsIT {
                 "surname size must be between 2 and 50");
 
 
-        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate);
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate,updateHeaders);
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                106L);
+                this.savedAccount3.getId());
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(errors.size() ,node.get("error").size());
@@ -482,7 +628,7 @@ public class AccountsIT {
             log.info("Error -> "+objNode.asText());
         }
     }
-
+/*
     // Account activation SUCCESS
 
     @Test

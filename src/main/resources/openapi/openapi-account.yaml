@@ -373,18 +373,6 @@ components:
           description: Account Password
 
 
-    Admin:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          minimum: 1
-          readOnly: true
-          description: Admin account id
-      required:
-        - id
-
     AccountList:
       type: array
       items:

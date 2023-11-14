@@ -4,16 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
-import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
-import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.service.AccountsService;
 import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyActivatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotActivedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
-import jakarta.validation.ConstraintViolationException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.ActionForbiddenException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,21 +17,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
 
 import static java.util.Arrays.asList;
@@ -60,24 +60,26 @@ class AccountsControllerTest {
     private AccountsService accountsService;
     @MockBean
     private KeycloakService keycloakService;
+    @MockBean
+    private SecurityContext securityContext;
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private ObjectMapper objectMapper;
-    @MockBean
-    private AccountsRepository accountsRepository;
 
+    private JwtAuthenticationToken jwtAuthenticationToken;
     private Account newAccount;
     private Account savedAccount;
-    private AccountJpa savedAccountJpa;
     private AccountPatch accountToUpdate;
-    private LocalDateTime validationTime = LocalDateTime.now().minusDays(1);
-    private String accountId = UUID.randomUUID().toString();
+    private final String accountId = UUID.randomUUID().toString();
+    private final String invalidId = UUID.randomUUID().toString();
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.setContext(securityContext);
+
         this.newAccount = new Account("pinco.pallino@gmail.com",
                 LocalDate.of(1990,4,4),
                 Account.GenderEnum.MALE,
@@ -93,18 +95,21 @@ class AccountsControllerTest {
         this.savedAccount.setName(this.newAccount.getName());
         this.savedAccount.setSurname(this.newAccount.getSurname());
         this.savedAccount.setId(this.accountId);
-        /*
-        this.savedAccountJpa = new AccountJpa(
-                this.savedAccount.getEmail(),
-                this.savedAccount.getBirthdate(),
-                this.savedAccount.getGender(),
-                this.savedAccount.getPassword()
-        );
-        this.savedAccountJpa.setName(this.savedAccount.getName());
-        this.savedAccountJpa.setSurname(this.savedAccount.getSurname());
-        this.savedAccountJpa.setId(this.savedAccount.getId());
-        this.savedAccountJpa.setValidationCode("f13e7cf9-fcb2-4650-9648-4efae38ca4ac");
-        this.savedAccountJpa.setValidatedAt(this.validationTime);
+
+
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("alg","HS256");
+        headers.put("typ","JWT");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("sub",this.savedAccount.getId());
+        Jwt jwt = new Jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+                Instant.now(),
+                Instant.MAX,
+                headers,
+                claims);
+
+        this.jwtAuthenticationToken = new JwtAuthenticationToken(jwt);
+
 
         this.accountToUpdate = new AccountPatch();
         this.accountToUpdate.setName("Pinchetta");
@@ -112,7 +117,7 @@ class AccountsControllerTest {
         this.accountToUpdate.setGender(AccountPatch.GenderEnum.FEMALE);
         this.accountToUpdate.setPassword("43hg434j5g4!");
 
-         */
+
     }
 
     @AfterEach
@@ -120,6 +125,7 @@ class AccountsControllerTest {
     }
 
     // Add account Success
+
 
     @Test
     void testAddAccount_Then_201() throws Exception {
@@ -148,7 +154,7 @@ class AccountsControllerTest {
 
         log.info(accountResult.toString());
     }
-/*
+
     @Test
     void testAddAccountMissing_Name_Surname_Then_201() throws Exception {
         this.newAccount.setName(null);
@@ -178,6 +184,7 @@ class AccountsControllerTest {
     }
 
     // Add Account Failed
+
 
     @Test
     void testAddAccount_AlreadyCreated_Then_409() throws Exception{
@@ -309,7 +316,7 @@ class AccountsControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(res -> assertTrue(res.getResolvedException() instanceof HttpMessageNotReadableException))
-                .andExpect(jsonPath("$.error").value("JSON parse error: Cannot deserialize value of type `java.time.LocalDate` from String \"202308-05\": Failed to deserialize java.time.LocalDate: (java.time.format.DateTimeParseException) Text '202308-05' could not be parsed at index 0"))
+                .andExpect(jsonPath("$.error").value("Message is not readable"))
                 .andReturn();
         String resultAsString = result.getResponse().getContentAsString();
         log.info("Errors\n"+resultAsString);
@@ -347,7 +354,7 @@ class AccountsControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(res -> assertTrue(res.getResolvedException() instanceof HttpMessageNotReadableException))
-                .andExpect(jsonPath("$.error").value("JSON parse error: Cannot construct instance of `com.sergiostefanizzi.accountmicroservice.model.Account$GenderEnum`, problem: Unexpected value 'male'"))
+                .andExpect(jsonPath("$.error").value("Message is not readable"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();
@@ -355,10 +362,12 @@ class AccountsControllerTest {
     }
 
     // Delete Account Success
+
     @Test
     void testDeleteAccountById_Then_204() throws Exception{
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.of(this.savedAccount.getId()));
-        doNothing().when(this.accountsService).remove(anyLong());
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
 
         this.mockMvc.perform(delete("/accounts/{accountId}",this.savedAccount.getId())
                         .accept(MediaType.APPLICATION_JSON))
@@ -368,9 +377,27 @@ class AccountsControllerTest {
 
     // Delete Account Failed
 
+
+    @Test
+    void testDeleteAccountById_Then_403() throws Exception{
+
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+
+        MvcResult result = this.mockMvc.perform(delete("/accounts/{accountId}",this.invalidId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(res -> assertTrue(res.getResolvedException() instanceof ActionForbiddenException))
+                .andExpect(jsonPath("$.error").value("Forbidden: Account with id "+this.jwtAuthenticationToken.getToken().getClaim("sub")+" can not perform this action"))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+    }
+
     @Test
     void testDeleteAccountById_Then_404() throws Exception{
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.empty());
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
 
         MvcResult result = this.mockMvc.perform(delete("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -383,19 +410,6 @@ class AccountsControllerTest {
         log.info("Errors\n"+resultAsString);
     }
 
-    @Test
-    void testDeleteAccountById_Then_400() throws Exception{
-        MvcResult result = this.mockMvc.perform(delete("/accounts/IdNotLong")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest())
-                .andExpect(res-> assertTrue(res.getResolvedException() instanceof NumberFormatException))
-                .andExpect(jsonPath("$.error").value("ID is not valid!"))
-                .andReturn();
-
-        String resultAsString = result.getResponse().getContentAsString();
-        log.info("Errors\n"+resultAsString);
-    }
 
     // Update Account SUCCESS
     @Test
@@ -413,8 +427,10 @@ class AccountsControllerTest {
         //converto l'account che voglio aggiornare in formato json
         String accountToUpdateJson = this.objectMapper.writeValueAsString(this.accountToUpdate);
 
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.of(this.savedAccount.getId()));
-        when(this.accountsService.update(anyLong(), any(AccountPatch.class))).thenReturn(updatedAccount);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+
+        when(this.accountsService.update(anyString(), any(AccountPatch.class))).thenReturn(updatedAccount);
 
         MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -441,43 +457,6 @@ class AccountsControllerTest {
     // Update Account Failed
 
     @Test
-    void testUpdateAccountById_Then_404() throws Exception{
-        //converto l'account che voglio aggiornare in formato json
-        String accountToUpdateJson = this.objectMapper.writeValueAsString(this.accountToUpdate);
-
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.empty());
-
-        MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(accountToUpdateJson)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound())
-                .andExpect(res -> assertTrue(res.getResolvedException() instanceof AccountNotFoundException))
-                .andExpect(jsonPath("$.error").value("Account with id "+this.savedAccount.getId()+" not found!"))
-                .andReturn();
-        String resultAsString = result.getResponse().getContentAsString();
-        log.info("Errors\n"+resultAsString);
-    }
-
-    @Test
-    void testUpdateAccountById_Then_400() throws Exception{
-        //converto l'account che voglio aggiornare in formato json
-        String accountToUpdateJson = this.objectMapper.writeValueAsString(this.accountToUpdate);
-
-        MvcResult result = this.mockMvc.perform(delete("/accounts/IdNotLong")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .contentType(accountToUpdateJson)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest())
-                .andExpect(res-> assertTrue(res.getResolvedException() instanceof NumberFormatException))
-                .andExpect(jsonPath("$.error").value("ID is not valid!"))
-                .andReturn();
-
-        String resultAsString = result.getResponse().getContentAsString();
-        log.info("Errors\n"+resultAsString);
-    }
-
-    @Test
     void testUpdateAccountById_Invalid_NameSurnamePassword_Then_400() throws Exception{
         this.accountToUpdate.setName("P3");
         this.accountToUpdate.setSurname("P3");
@@ -492,7 +471,9 @@ class AccountsControllerTest {
                 "name must match \"^[a-zA-Z]+$\"",
                 "surname must match \"^[a-zA-Z]+$\"");
 
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.of(this.savedAccount.getId()));
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+
         MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(accountToUpdateJson)
@@ -514,7 +495,8 @@ class AccountsControllerTest {
         ((ObjectNode) jsonNode).put("gender","female");
         String accountToUpdateJson = this.objectMapper.writeValueAsString(jsonNode);
 
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.of(this.savedAccount.getId()));
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
 
         MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -522,7 +504,7 @@ class AccountsControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(res -> assertTrue(res.getResolvedException() instanceof HttpMessageNotReadableException))
-                .andExpect(jsonPath("$.error").value("JSON parse error: Cannot construct instance of `com.sergiostefanizzi.accountmicroservice.model.AccountPatch$GenderEnum`, problem: Unexpected value 'female'"))
+                .andExpect(jsonPath("$.error").value("Message is not readable"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();
@@ -544,7 +526,9 @@ class AccountsControllerTest {
                 "name size must be between 2 and 50",
                 "surname size must be between 2 and 50");
 
-        when(this.accountsRepository.checkActiveById(anyLong())).thenReturn(Optional.of(this.savedAccount.getId()));
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+
         MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(accountToUpdateJson)
@@ -560,11 +544,53 @@ class AccountsControllerTest {
         log.info("Errors\n"+resultAsString);
     }
 
+    @Test
+    void testUpdateAccountById_Then_403() throws Exception{
+        //converto l'account che voglio aggiornare in formato json
+        String accountToUpdateJson = this.objectMapper.writeValueAsString(this.accountToUpdate);
+
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+
+        MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.invalidId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(accountToUpdateJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(res -> assertTrue(res.getResolvedException() instanceof ActionForbiddenException))
+                .andExpect(jsonPath("$.error").value("Forbidden: Account with id "+this.jwtAuthenticationToken.getToken().getClaim("sub")+" can not perform this action"))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+    }
+
+    @Test
+    void testUpdateAccountById_Then_404() throws Exception{
+        //converto l'account che voglio aggiornare in formato json
+        String accountToUpdateJson = this.objectMapper.writeValueAsString(this.accountToUpdate);
+
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
+
+        MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(accountToUpdateJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(res -> assertTrue(res.getResolvedException() instanceof AccountNotFoundException))
+                .andExpect(jsonPath("$.error").value("Account with id "+this.savedAccount.getId()+" not found!"))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+    }
+
+
+
+/*
     // Account activation SUCCESS
     @Test
     void testActivateAccountById_Then_204() throws Exception{
         this.savedAccountJpa.setValidatedAt(null);
-        when(this.accountsRepository.checkNotDeletedById(anyLong())).thenReturn(Optional.of(this.savedAccountJpa));
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", UUID.randomUUID().toString())
@@ -578,7 +604,7 @@ class AccountsControllerTest {
         String validationCode = UUID.randomUUID().toString();
         String invalidValidationCode = validationCode.substring(0,validationCode.length()-1);
         this.savedAccountJpa.setValidatedAt(null);
-        when(this.accountsRepository.checkNotDeletedById(anyLong())).thenReturn(Optional.of(this.savedAccountJpa));
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", invalidValidationCode)
@@ -596,8 +622,8 @@ class AccountsControllerTest {
         String validationCode = UUID.randomUUID().toString();
 
         this.savedAccountJpa.setValidatedAt(null);
-        when(this.accountsRepository.checkNotDeletedById(anyLong())).thenReturn(Optional.of(this.savedAccountJpa));
-        doThrow(new AccountNotActivedException(this.savedAccount.getId())).when(this.accountsService).active(anyLong(), anyString());
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        doThrow(new AccountNotActivedException(this.savedAccount.getId())).when(this.accountsService).active(anyString(), anyString());
         MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", validationCode)
@@ -616,8 +642,8 @@ class AccountsControllerTest {
         String validationCode = UUID.randomUUID().toString();
 
 
-        when(this.accountsRepository.checkNotDeletedById(anyLong())).thenReturn(Optional.of(this.savedAccountJpa));
-        doThrow(new AccountAlreadyActivatedException(this.savedAccount.getId())).when(this.accountsService).active(anyLong(), anyString());
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        doThrow(new AccountAlreadyActivatedException(this.savedAccount.getId())).when(this.accountsService).active(anyString(), anyString());
         MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", validationCode)
@@ -631,7 +657,8 @@ class AccountsControllerTest {
 
     }
 
-     */
+ */
+
 
 
 }

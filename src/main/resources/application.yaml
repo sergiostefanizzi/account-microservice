@@ -20,11 +20,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          #issuer-uri: http://auth-server:8082
-          #issuer-uri: http://localhost:8082/auth/realms/social-accounts
-          #jwk-set-uri: http://localhost:8082/auth/realms/social-accounts/protocol/openid-connect/certs
-          issuer-uri: http://localhost:8082/realms/social-accounts
-          jwk-set-uri: http://localhost:8082/realms/social-accounts/protocol/openid-connect/certs
+          issuer-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}
+          jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}
 logging:
   level:
     org:
@@ -36,6 +33,7 @@ logging:
               BasicBinder: ${log.hibernate.level}
       springframework:
         jdbc: ${log.spring.level}
+        security: 'TRACE'
       apache:
         http: 'DEBUG'
       httpclient:

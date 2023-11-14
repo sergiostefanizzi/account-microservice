@@ -240,7 +240,7 @@ public class KeycloakService {
                     .add(Collections.singletonList(userRealmRole));
         }
 
-
+        /*
         ClientsResource clients = realmResource
                 .clients();
 
@@ -268,6 +268,8 @@ public class KeycloakService {
             roleScopeResourceClient
                     .add(Collections.singletonList(userClientRole));
         }
+
+         */
         return true;
     }
 

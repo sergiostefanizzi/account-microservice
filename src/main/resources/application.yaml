@@ -20,8 +20,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}
-          jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}
+          issuer-uri: http://localhost:8082/realms/social-accounts
+          jwk-set-uri: http://localhost:8082/realms/social-accounts/protocol/openid-connect/certs
 logging:
   level:
     org:

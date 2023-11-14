@@ -24,14 +24,11 @@ public class SecurityConfig {
         http
                 .csrf().disable()
                 .authorizeHttpRequests()
-                .requestMatchers("/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/accounts").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/accounts/**").hasAnyRole("client_user","client_admin")
                 .requestMatchers(HttpMethod.DELETE, "/accounts/**").hasAnyRole("client_user","client_admin")
                 .requestMatchers(HttpMethod.PATCH, "/accounts/**").hasAnyRole("client_user","client_admin")
-                .requestMatchers("/admins/**").hasRole("client_admin")
-                .anyRequest()
-                .authenticated();
+                .requestMatchers("/admins/**").hasRole("client_admin");
         http
                 .oauth2ResourceServer()
                 .jwt()

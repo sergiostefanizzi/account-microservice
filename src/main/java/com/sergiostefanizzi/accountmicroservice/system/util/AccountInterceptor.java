@@ -47,7 +47,7 @@ public class AccountInterceptor implements HandlerInterceptor {
         if (!check){
             throw new AccountNotFoundException(accountId);
         }
-
+        //TODO Farlo prima
         String tokenAccountId = getJwtAccountId();
         if (!accountId.equals(tokenAccountId) && !requestUri.equalsIgnoreCase("/admins/"+accountId)){
             throw new ActionForbiddenException(tokenAccountId);

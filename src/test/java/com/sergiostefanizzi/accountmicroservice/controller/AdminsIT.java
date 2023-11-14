@@ -101,7 +101,7 @@ public class AdminsIT {
 
     @Test
     void testAddAdminById_Then_201() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount1);
+        String accessToken = getAccessToken(this.savedAccount2);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
@@ -118,48 +118,64 @@ public class AdminsIT {
         log.info("New Admin with Id --> "+savedAdminId);
 
     }
-/*
-    @Test
-    void testAddAdminById_Then_400() throws Exception{
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/IdNotLong",
-                HttpMethod.PUT,
-                HttpEntity.EMPTY,
-                String.class);
 
-        JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("ID is not valid!", node.get("error").asText());
-        log.info("Error --> "+node.get("error").asText());
+
+    @Test
+    void testAddAdminById_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount3);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
+                String.class,
+                this.savedAccount2.getId());
+
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+
     }
 
     @Test
     void testAddAdminById_Then_404() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount1);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.PUT,
-                HttpEntity.EMPTY,
+                new HttpEntity<>(headers),
                 String.class,
-                Long.MAX_VALUE);
+                this.invalidId);
 
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Account with id "+Long.MAX_VALUE+" not found!", node.get("error").asText());
+        assertEquals("Account with id "+this.invalidId+" not found!", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
     }
 
     @Test
     void testAddAdminById_Then_409() throws Exception{
+        String accessToken = getAccessToken(this.savedAccount2);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.PUT,
-                HttpEntity.EMPTY,
+                new HttpEntity<>(headers),
                 String.class,
-                109L);
+                this.savedAccount2.getId());
 
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertEquals("Conflict! Admin with id 109 already created!", node.get("error").asText());
+        assertEquals("Conflict! Admin with id "+this.savedAccount2.getId()+" already created!", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
     }
 
@@ -266,7 +282,6 @@ public class AdminsIT {
     }
 
 
- */
 
 
 }

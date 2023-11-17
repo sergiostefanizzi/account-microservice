@@ -1,13 +1,9 @@
 package com.sergiostefanizzi.accountmicroservice.service;
 
-import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
-
 import com.sergiostefanizzi.accountmicroservice.controller.converter.UserRepresentationToAccountConverter;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
-import com.sergiostefanizzi.accountmicroservice.model.AccountJpa;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

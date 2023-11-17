@@ -1,7 +1,6 @@
 package com.sergiostefanizzi.accountmicroservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.service.AdminsService;
 import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
@@ -152,6 +151,7 @@ class AdminsControllerTest {
 
     @Test
     void testAddAdminById_Then_404() throws Exception{
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
 
         MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",accountId)
@@ -197,8 +197,8 @@ class AdminsControllerTest {
 
     @Test
     void deleteAdminById_Then_404() throws Exception{
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
-
         MvcResult result = this.mockMvc.perform(delete("/admins/{accountId}",accountId)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())

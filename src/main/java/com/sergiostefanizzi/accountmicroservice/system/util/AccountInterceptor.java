@@ -1,6 +1,5 @@
 package com.sergiostefanizzi.accountmicroservice.system.util;
 
-import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyActivatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
@@ -35,6 +34,12 @@ public class AccountInterceptor implements HandlerInterceptor {
         String accountId = (String) pathVariables.get("accountId");
         Boolean check = false;
         String requestUri = request.getRequestURI();
+
+        String tokenAccountId = getJwtAccountId();
+        if (!accountId.equals(tokenAccountId) && !requestUri.equalsIgnoreCase("/admins/"+accountId)){
+            throw new ActionForbiddenException(tokenAccountId);
+        }
+
         if(request.getMethod().equalsIgnoreCase("PUT") && requestUri.equalsIgnoreCase("/accounts/"+accountId)){
             check = keycloakService.checkActiveById(accountId);
             if(check && !keycloakService.checksEmailValidated(accountId)){
@@ -47,11 +52,8 @@ public class AccountInterceptor implements HandlerInterceptor {
         if (!check){
             throw new AccountNotFoundException(accountId);
         }
-        //TODO Farlo prima
-        String tokenAccountId = getJwtAccountId();
-        if (!accountId.equals(tokenAccountId) && !requestUri.equalsIgnoreCase("/admins/"+accountId)){
-            throw new ActionForbiddenException(tokenAccountId);
-        }
+
+
 
         log.info("\n\tAccount Interceptor: Account ID-> "+accountId);
         return true;

@@ -65,7 +65,6 @@ public class KeycloakService {
 
         setRoles(userResource, realmResource, "user",false);
 
-        log.info(userResource.toRepresentation().toString());
         return userResource.toRepresentation();
     }
 
@@ -126,7 +125,7 @@ public class KeycloakService {
     }
 
     public boolean validateEmail(String accountId, String validationCode) {
-        //TODO email da keycloak
+        //TODO validationCode
         return true;
     }
 
@@ -190,14 +189,12 @@ public class KeycloakService {
         attributes.put("birthdate", List.of(newAccount.getBirthdate().toString()));
         attributes.put("gender", List.of(newAccount.getGender().toString()));
         user.setAttributes(attributes);
-        //TODO togliere questo e fare la verifica via email
+        //TODO togliere questo e fare la verifica del validation code
         user.setEmailVerified(true);
 
         UsersResource userResource = realmResource.users();
 
         Response response = userResource.create(user);
-        //log.info("Response: "+response.getStatus()+" "+response.getLocation());
-        //log.info("Response: "+response.getStatus()+" "+response.getStatusInfo()+" "+response.getLocation());
 
 
         //String userId = CreatedResponseUtil.getCreatedId(response);
@@ -228,7 +225,9 @@ public class KeycloakService {
         RoleScopeResource roleScopeResource = roles
                 .realmLevel();
 
-        if(roleScopeResource.listEffective().contains(userRealmRole)){
+        if(roleScopeResource
+                .listEffective()
+                .contains(userRealmRole)){
             if(isUnset){
                 roleScopeResource
                         .remove(Collections.singletonList(userRealmRole));
@@ -239,37 +238,6 @@ public class KeycloakService {
             roleScopeResource
                     .add(Collections.singletonList(userRealmRole));
         }
-
-        /*
-        ClientsResource clients = realmResource
-                .clients();
-
-        ClientRepresentation accountsMicroClient = clients
-                .findByClientId("accounts-micro")
-                .get(0);
-
-        RoleRepresentation userClientRole = clients
-                .get(accountsMicroClient.getId())
-                .roles()
-                .get("client_"+role)
-                .toRepresentation();
-
-        RoleScopeResource roleScopeResourceClient = roles
-                .clientLevel(accountsMicroClient.getId());
-
-        if(roleScopeResourceClient.listEffective().contains(userClientRole)){
-            if(isUnset){
-                roleScopeResourceClient
-                        .remove(Collections.singletonList(userClientRole));
-            }else{
-                return false;
-            }
-        }else{
-            roleScopeResourceClient
-                    .add(Collections.singletonList(userClientRole));
-        }
-
-         */
         return true;
     }
 

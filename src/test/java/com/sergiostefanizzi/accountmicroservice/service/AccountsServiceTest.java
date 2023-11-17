@@ -1,12 +1,10 @@
 package com.sergiostefanizzi.accountmicroservice.service;
 
-import com.sergiostefanizzi.accountmicroservice.controller.converter.AccountToJpaConverter;
 import com.sergiostefanizzi.accountmicroservice.controller.converter.UserRepresentationToAccountConverter;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotActivedException;
 import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
-import com.sergiostefanizzi.accountmicroservice.repository.AccountsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

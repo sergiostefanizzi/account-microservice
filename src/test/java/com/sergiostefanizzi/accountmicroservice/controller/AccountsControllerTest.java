@@ -397,6 +397,7 @@ class AccountsControllerTest {
 
     @Test
     void testDeleteAccountById_Then_404() throws Exception{
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
 
         MvcResult result = this.mockMvc.perform(delete("/accounts/{accountId}",this.savedAccount.getId())
@@ -568,7 +569,7 @@ class AccountsControllerTest {
     void testUpdateAccountById_Then_404() throws Exception{
         //converto l'account che voglio aggiornare in formato json
         String accountToUpdateJson = this.objectMapper.writeValueAsString(this.accountToUpdate);
-
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
 
         MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())

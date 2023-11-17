@@ -245,9 +245,7 @@ class KeycloakServiceTest {
     void testCreateUser_Success() {
         this.account.setId(null);
         RoleRepresentation newRole = new RoleRepresentation("user","User role",false);
-        RoleRepresentation newClientRole = new RoleRepresentation("client_user","Client User role",false);
-        ClientRepresentation newClient = new ClientRepresentation();
-        newClient.setName("accounts-micro");
+
 
         when(this.keycloak.realm(anyString())).thenReturn(this.realmResource);
         when(this.realmResource.users()).thenReturn(this.usersResource);
@@ -265,16 +263,6 @@ class KeycloakServiceTest {
         when(this.userResource.roles()).thenReturn(this.roleMappingResource);
         when(this.roleMappingResource.realmLevel()).thenReturn(this.roleScopeResource);
 
-        when(this.realmResource.clients()).thenReturn(this.clientsResource);
-        when(this.clientsResource.findByClientId("accounts-micro")).thenReturn(Collections.singletonList(newClient));
-
-        when(this.clientsResource.get(newClient.getId())).thenReturn(this.clientResource);
-        when(this.clientResource.roles()).thenReturn(this.realmRolesResource);
-
-        when(this.realmRoleResource.toRepresentation()).thenReturn(newClientRole);
-
-        when(this.roleMappingResource.clientLevel(newClient.getId())).thenReturn(this.roleScopeResource);
-
         when(this.userResource.toRepresentation()).thenReturn(this.userRepresentation);
 
         UserRepresentation returnedUser = this.keycloakService.createUser(this.account);
@@ -289,16 +277,11 @@ class KeycloakServiceTest {
         verify(this.usersResource, times(1)).get(anyString());
         verify(this.userResource, times(1)).resetPassword(any(CredentialRepresentation.class));
         verify(this.realmResource, times(1)).roles();
-        verify(this.realmRolesResource, times(2)).get(anyString());
-        verify(this.realmRoleResource, times(2)).toRepresentation();
+        verify(this.realmRolesResource, times(1)).get(anyString());
+        verify(this.realmRoleResource, times(1)).toRepresentation();
         verify(this.userResource, times(1)).roles();
         verify(this.roleMappingResource, times(1)).realmLevel();
-        verify(this.realmResource, times(1)).clients();
-        verify(this.clientsResource, times(1)).findByClientId(anyString());
-        verify(this.clientsResource, times(1)).get(newClient.getId());
-        verify(this.clientResource, times(1)).roles();
-        verify(this.roleMappingResource, times(1)).clientLevel(newClient.getId());
-        verify(this.userResource, times(2)).toRepresentation();
+        verify(this.userResource, times(1)).toRepresentation();
     }
 
     @Test
@@ -446,12 +429,9 @@ class KeycloakServiceTest {
     @Test
     public void testCreateAdmin_Success(){
         RoleRepresentation adminRealmRole = new RoleRepresentation("admin","Admin role",false);
-        RoleRepresentation adminClientRole = new RoleRepresentation("client_admin","Admin client role",false);
         RoleRepresentation userRealmRole = new RoleRepresentation("user","User role",false);
-        RoleRepresentation userClientRole = new RoleRepresentation("client_user","Admin client role",false);
 
         List<RoleRepresentation> realRoleList = List.of(userRealmRole);
-        List<RoleRepresentation> clientRoleList = List.of(userClientRole);
 
         ClientRepresentation newClient = new ClientRepresentation();
         newClient.setName("accounts-micro");
@@ -467,14 +447,6 @@ class KeycloakServiceTest {
         when(this.userResource.roles()).thenReturn(this.roleMappingResource);
         when(this.roleMappingResource.realmLevel()).thenReturn(this.roleScopeResource);
         when(this.roleScopeResource.listEffective()).thenReturn(realRoleList);
-        when(this.realmResource.clients()).thenReturn(this.clientsResource);
-        when(this.clientsResource.findByClientId(anyString())).thenReturn(List.of(newClient));
-        when(this.clientsResource.get(newClient.getId())).thenReturn(this.clientResource);
-        when(this.clientResource.roles()).thenReturn(this.clientRolesResource);
-        when(this.clientRolesResource.get(anyString())).thenReturn(this.clientRoleResource);
-        when(this.clientRoleResource.toRepresentation()).thenReturn(adminClientRole);
-        when(this.roleMappingResource.clientLevel(newClient.getId())).thenReturn(this.roleScopeResourceClient);
-        when(this.roleScopeResourceClient.listEffective()).thenReturn(clientRoleList);
 
         Optional<String> optionalAdminId = this.keycloakService.createAdmin(this.account.getId());
 
@@ -493,14 +465,6 @@ class KeycloakServiceTest {
         verify(this.userResource, times(1)).roles();
         verify(this.roleMappingResource, times(1)).realmLevel();
         verify(this.roleScopeResource, times(1)).listEffective();
-        verify(this.realmResource, times(1)).clients();
-        verify(this.clientsResource, times(1)).findByClientId(anyString());
-        verify(this.clientsResource, times(1)).get(newClient.getId());
-        verify(this.clientResource, times(1)).roles();
-        verify(this.clientRolesResource, times(1)).get(anyString());
-        verify(this.clientRoleResource, times(1)).toRepresentation();
-        verify(this.roleMappingResource, times(1)).clientLevel(newClient.getId());
-        verify(this.roleScopeResourceClient, times(1)).listEffective();
     }
 
     @Test
@@ -553,12 +517,9 @@ class KeycloakServiceTest {
     @Test
     public void testCreateAdmin_AlreadyClientAdmin_Failed(){
         RoleRepresentation adminRealmRole = new RoleRepresentation("admin","Admin role",false);
-        RoleRepresentation adminClientRole = new RoleRepresentation("client_admin","Admin client role",false);
-        RoleRepresentation userRealmRole = new RoleRepresentation("user","User role",false);
-        RoleRepresentation userClientRole = new RoleRepresentation("client_user","Admin client role",false);
+       RoleRepresentation userRealmRole = new RoleRepresentation("user","User role",false);
 
-        List<RoleRepresentation> realRoleList = List.of(userRealmRole);
-        List<RoleRepresentation> clientRoleList = List.of(userClientRole, adminClientRole);
+        List<RoleRepresentation> realRoleList = List.of(userRealmRole, adminRealmRole);
 
         ClientRepresentation newClient = new ClientRepresentation();
         newClient.setName("accounts-micro");
@@ -574,14 +535,6 @@ class KeycloakServiceTest {
         when(this.userResource.roles()).thenReturn(this.roleMappingResource);
         when(this.roleMappingResource.realmLevel()).thenReturn(this.roleScopeResource);
         when(this.roleScopeResource.listEffective()).thenReturn(realRoleList);
-        when(this.realmResource.clients()).thenReturn(this.clientsResource);
-        when(this.clientsResource.findByClientId(anyString())).thenReturn(List.of(newClient));
-        when(this.clientsResource.get(newClient.getId())).thenReturn(this.clientResource);
-        when(this.clientResource.roles()).thenReturn(this.clientRolesResource);
-        when(this.clientRolesResource.get(anyString())).thenReturn(this.clientRoleResource);
-        when(this.clientRoleResource.toRepresentation()).thenReturn(adminClientRole);
-        when(this.roleMappingResource.clientLevel(newClient.getId())).thenReturn(this.roleScopeResourceClient);
-        when(this.roleScopeResourceClient.listEffective()).thenReturn(clientRoleList);
 
         Optional<String> optionalAdminId = this.keycloakService.createAdmin(this.account.getId());
 
@@ -599,25 +552,14 @@ class KeycloakServiceTest {
         verify(this.userResource, times(1)).roles();
         verify(this.roleMappingResource, times(1)).realmLevel();
         verify(this.roleScopeResource, times(1)).listEffective();
-        verify(this.realmResource, times(1)).clients();
-        verify(this.clientsResource, times(1)).findByClientId(anyString());
-        verify(this.clientsResource, times(1)).get(newClient.getId());
-        verify(this.clientResource, times(1)).roles();
-        verify(this.clientRolesResource, times(1)).get(anyString());
-        verify(this.clientRoleResource, times(1)).toRepresentation();
-        verify(this.roleMappingResource, times(1)).clientLevel(newClient.getId());
-        verify(this.roleScopeResourceClient, times(1)).listEffective();
     }
 
     @Test
     public void testBlockUser_Success(){
         RoleRepresentation adminRealmRole = new RoleRepresentation("admin","Admin role",false);
-        RoleRepresentation adminClientRole = new RoleRepresentation("client_admin","Admin client role",false);
         RoleRepresentation userRealmRole = new RoleRepresentation("user","User role",false);
-        RoleRepresentation userClientRole = new RoleRepresentation("client_user","Admin client role",false);
 
         List<RoleRepresentation> realmRoleList = List.of(userRealmRole, adminRealmRole);
-        List<RoleRepresentation> clientRoleList = List.of(userClientRole, adminClientRole);
 
         ClientRepresentation newClient = new ClientRepresentation();
         newClient.setName("accounts-micro");
@@ -633,14 +575,6 @@ class KeycloakServiceTest {
         when(this.userResource.roles()).thenReturn(this.roleMappingResource);
         when(this.roleMappingResource.realmLevel()).thenReturn(this.roleScopeResource);
         when(this.roleScopeResource.listEffective()).thenReturn(realmRoleList);
-        when(this.realmResource.clients()).thenReturn(this.clientsResource);
-        when(this.clientsResource.findByClientId(anyString())).thenReturn(List.of(newClient));
-        when(this.clientsResource.get(newClient.getId())).thenReturn(this.clientResource);
-        when(this.clientResource.roles()).thenReturn(this.clientRolesResource);
-        when(this.clientRolesResource.get(anyString())).thenReturn(this.clientRoleResource);
-        when(this.clientRoleResource.toRepresentation()).thenReturn(adminClientRole);
-        when(this.roleMappingResource.clientLevel(newClient.getId())).thenReturn(this.roleScopeResourceClient);
-        when(this.roleScopeResourceClient.listEffective()).thenReturn(clientRoleList);
 
         Optional<String> accountIdOptional = this.keycloakService.blockUser(this.account.getId());
 
@@ -655,26 +589,16 @@ class KeycloakServiceTest {
         verify(this.userResource, times(1)).roles();
         verify(this.roleMappingResource, times(1)).realmLevel();
         verify(this.roleScopeResource, times(1)).listEffective();
-        verify(this.realmResource, times(1)).clients();
-        verify(this.clientsResource, times(1)).findByClientId(anyString());
-        verify(this.clientsResource, times(1)).get(newClient.getId());
-        verify(this.clientResource, times(1)).roles();
-        verify(this.clientRolesResource, times(1)).get(anyString());
-        verify(this.clientRoleResource, times(1)).toRepresentation();
-        verify(this.roleMappingResource, times(1)).clientLevel(newClient.getId());
-        verify(this.roleScopeResourceClient, times(1)).listEffective();
+
     }
 
     @Test
     public void testBlockUser_AlreadyDisabled_Failed(){
         this.userRepresentation.setEnabled(false);
         RoleRepresentation adminRealmRole = new RoleRepresentation("admin","Admin role",false);
-        RoleRepresentation adminClientRole = new RoleRepresentation("client_admin","Admin client role",false);
         RoleRepresentation userRealmRole = new RoleRepresentation("user","User role",false);
-        RoleRepresentation userClientRole = new RoleRepresentation("client_user","Admin client role",false);
 
         List<RoleRepresentation> realmRoleList = List.of(userRealmRole, adminRealmRole);
-        List<RoleRepresentation> clientRoleList = List.of(userClientRole, adminClientRole);
 
         ClientRepresentation newClient = new ClientRepresentation();
         newClient.setName("accounts-micro");
@@ -690,14 +614,6 @@ class KeycloakServiceTest {
         when(this.userResource.roles()).thenReturn(this.roleMappingResource);
         when(this.roleMappingResource.realmLevel()).thenReturn(this.roleScopeResource);
         when(this.roleScopeResource.listEffective()).thenReturn(realmRoleList);
-        when(this.realmResource.clients()).thenReturn(this.clientsResource);
-        when(this.clientsResource.findByClientId(anyString())).thenReturn(List.of(newClient));
-        when(this.clientsResource.get(newClient.getId())).thenReturn(this.clientResource);
-        when(this.clientResource.roles()).thenReturn(this.clientRolesResource);
-        when(this.clientRolesResource.get(anyString())).thenReturn(this.clientRoleResource);
-        when(this.clientRoleResource.toRepresentation()).thenReturn(adminClientRole);
-        when(this.roleMappingResource.clientLevel(newClient.getId())).thenReturn(this.roleScopeResourceClient);
-        when(this.roleScopeResourceClient.listEffective()).thenReturn(clientRoleList);
 
         Optional<String> accountIdOptional = this.keycloakService.blockUser(this.account.getId());
 
@@ -712,14 +628,6 @@ class KeycloakServiceTest {
         verify(this.userResource, times(1)).roles();
         verify(this.roleMappingResource, times(1)).realmLevel();
         verify(this.roleScopeResource, times(1)).listEffective();
-        verify(this.realmResource, times(1)).clients();
-        verify(this.clientsResource, times(1)).findByClientId(anyString());
-        verify(this.clientsResource, times(1)).get(newClient.getId());
-        verify(this.clientResource, times(1)).roles();
-        verify(this.clientRolesResource, times(1)).get(anyString());
-        verify(this.clientRoleResource, times(1)).toRepresentation();
-        verify(this.roleMappingResource, times(1)).clientLevel(newClient.getId());
-        verify(this.roleScopeResourceClient, times(1)).listEffective();
     }
 
     @Test

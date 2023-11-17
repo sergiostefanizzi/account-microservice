@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +34,7 @@ public class AccountsService {
 
 
         return userRepresentationToAccountConverter.convert(
-                keycloakService.createUser(newAccount)
+                keycloakService.createUser(newAccount, UUID.randomUUID().toString())
         );
     }
 
@@ -45,7 +47,7 @@ public class AccountsService {
     @Transactional
     public void active(String accountId, String validationCode){
         if(!keycloakService.validateEmail(accountId, validationCode)){
-            throw new AccountNotActivedException(String.valueOf(accountId));
+            throw new AccountNotActivedException(accountId);
         }
     }
 

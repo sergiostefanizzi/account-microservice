@@ -1,7 +1,10 @@
 package com.sergiostefanizzi.accountmicroservice.system.util;
 
 import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.*;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyActivatedException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.ActionForbiddenException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.EmailNotValidatedException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -18,10 +21,9 @@ import java.util.Map;
 
 @Slf4j
 @Component
-public class AccountInterceptor implements HandlerInterceptor {
+public class AdminInterceptor implements HandlerInterceptor {
     @Autowired
     private KeycloakService keycloakService;
-
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         log.info("\n\tAccount Interceptor -> "+request.getRequestURI());
@@ -30,28 +32,20 @@ public class AccountInterceptor implements HandlerInterceptor {
 
         Map pathVariables = (Map) request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
         String accountId = (String) pathVariables.get("accountId");
-        log.info("\n\tAccount Interceptor: Account ID-> "+accountId);
+        log.info("\n\tAccount Admin Interceptor: Account ID-> "+accountId);
 
         String tokenAccountId = getJwtAccountId();
-        if (!accountId.equals(tokenAccountId)){
+        // l'admin non puo' assegnarsi nuovamente il ruolo di admin e non si puo' eliminare da solo
+        // l'admin deve avere l'email validata
+        if (accountId.equals(tokenAccountId) || !keycloakService.checksEmailValidated(tokenAccountId)){
             throw new ActionForbiddenException(tokenAccountId);
         }
-        Boolean isActive = keycloakService.checkActiveById(accountId);
-        if(isActive){
-            if(keycloakService.checksEmailValidated(accountId)){
-                if(request.getMethod().equalsIgnoreCase("PUT")){
-                    throw new AccountAlreadyActivatedException(accountId);
-                }
-            }else {
-                throw new EmailNotValidatedException(accountId);
-            }
-        }else {
+        Boolean isUserActive = keycloakService.checkActiveById(accountId);
+        if(!isUserActive){
             throw new AccountNotFoundException(accountId);
         }
         return true;
     }
-
-
 
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {

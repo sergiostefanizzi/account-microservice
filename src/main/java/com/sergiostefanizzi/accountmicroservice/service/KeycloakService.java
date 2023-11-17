@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public class KeycloakService {
     @Autowired
     private Keycloak keycloak;
-    private String REALM_NAME = "social-accounts";
+    private final String REALM_NAME = "social-accounts";
 
     public Boolean checksEmailValidated(String accountId) {
         try{
@@ -54,10 +54,10 @@ public class KeycloakService {
         }
     }
 
-    public UserRepresentation createUser(Account newAccount){
+    public UserRepresentation createUser(Account newAccount, String validationCode){
         RealmResource realmResource = this.keycloak.realm(REALM_NAME);
 
-        UserResource userResource = createUserResource(realmResource, newAccount);
+        UserResource userResource = createUserResource(realmResource, newAccount, validationCode);
 
         CredentialRepresentation credential = getCredentialRepresentation(newAccount.getPassword());
 
@@ -103,7 +103,6 @@ public class KeycloakService {
                 .get(accountId);
         UserRepresentation user = userResource.toRepresentation();
 
-        //Map<String, List<String>> attributes = new HashMap<>();
         Map<String, List<String>> attributes = user.getAttributes();
 
         // check perche' modifico solo i campi passati dalla patch
@@ -125,8 +124,21 @@ public class KeycloakService {
     }
 
     public boolean validateEmail(String accountId, String validationCode) {
-        //TODO validationCode
-        return true;
+
+        UserResource userResource = this.keycloak
+                .realm(REALM_NAME)
+                .users()
+                .get(accountId);
+        UserRepresentation user = userResource.toRepresentation();
+
+        Map<String, List<String>> attributes = user.getAttributes();
+        String savedValidationCode = attributes.get("validationCode").get(0);
+        if (savedValidationCode.equals(validationCode)){
+            user.setEmailVerified(true);
+            userResource.update(user);
+            return true;
+        }
+        return false;
     }
 
     public Optional<String> createAdmin(String accountId) {
@@ -179,7 +191,7 @@ public class KeycloakService {
     }
 
 
-    private UserResource createUserResource(RealmResource realmResource, Account newAccount) {
+    private UserResource createUserResource(RealmResource realmResource, Account newAccount, String validationCode) {
         UserRepresentation user = new UserRepresentation();
         user.setEnabled(true);
         user.setEmail(newAccount.getEmail());
@@ -188,9 +200,9 @@ public class KeycloakService {
         Map<String, List<String>> attributes = new HashMap<>();
         attributes.put("birthdate", List.of(newAccount.getBirthdate().toString()));
         attributes.put("gender", List.of(newAccount.getGender().toString()));
+        attributes.put("validationCode", List.of(validationCode));
         user.setAttributes(attributes);
-        //TODO togliere questo e fare la verifica del validation code
-        user.setEmailVerified(true);
+        user.setEmailVerified(false);
 
         UsersResource userResource = realmResource.users();
 
@@ -202,7 +214,7 @@ public class KeycloakService {
             throw new AccountAlreadyCreatedException(newAccount.getEmail());
         }
         String userId = getCreatedId(response);
-        log.info("User created with id "+userId);
+        log.info("User created with id "+userId+" validation code --> "+validationCode);
         return userResource.get(userId);
     }
 

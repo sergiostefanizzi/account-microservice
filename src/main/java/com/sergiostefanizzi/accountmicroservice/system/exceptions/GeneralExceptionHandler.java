@@ -95,10 +95,17 @@ public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
-
+    @ExceptionHandler(EmailNotValidatedException.class)
+    public ResponseEntity<Object> handleEmailNotValidatedException(EmailNotValidatedException ex, WebRequest request){
+        log.error(ex.getMessage(),ex);
+        String error = "Email is not validated";
+        Map<String, String> body = new HashMap<>();
+        body.put("error", error);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
+    }
 
     @ExceptionHandler(AccountNotActivedException.class)
-    public ResponseEntity<Object> handleAccountNotActivedException(RuntimeException ex, WebRequest request){
+    public ResponseEntity<Object> handleAccountNotActivedException(AccountNotActivedException ex, WebRequest request){
         log.error(ex.getMessage(),ex);
         String error = "Error during activation of the account!";
         Map<String, String> body = new HashMap<>();

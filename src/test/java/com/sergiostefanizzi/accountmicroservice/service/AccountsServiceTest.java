@@ -85,7 +85,7 @@ class AccountsServiceTest {
     void testSave_Success() {
         this.account.setId(null);
         when(this.keycloakService.checkUsersByEmail(anyString())).thenReturn(false);
-        when(this.keycloakService.createUser(any(Account.class))).thenReturn(this.userRepresentation);
+        when(this.keycloakService.createUser(any(Account.class), anyString())).thenReturn(this.userRepresentation);
         when(this.userRepresentationToAccountConverter.convert(any(UserRepresentation.class))).thenReturn(this.convertedAccount);
 
         Account savedAccount = this.accountsService.save(this.account);
@@ -93,7 +93,7 @@ class AccountsServiceTest {
         assertEquals(this.convertedAccount, savedAccount);
         log.info(savedAccount.toString());
         verify(this.keycloakService, times(1)).checkUsersByEmail(anyString());
-        verify(this.keycloakService, times(1)).createUser(any(Account.class));
+        verify(this.keycloakService, times(1)).createUser(any(Account.class), anyString());
         verify(this.userRepresentationToAccountConverter, times(1)).convert(any(UserRepresentation.class));
     }
 
@@ -107,7 +107,7 @@ class AccountsServiceTest {
         );
 
         verify(this.keycloakService, times(1)).checkUsersByEmail(anyString());
-        verify(this.keycloakService, times(0)).createUser(any(Account.class));
+        verify(this.keycloakService, times(0)).createUser(any(Account.class), anyString());
         verify(this.userRepresentationToAccountConverter, times(0)).convert(any(UserRepresentation.class));
 
     }

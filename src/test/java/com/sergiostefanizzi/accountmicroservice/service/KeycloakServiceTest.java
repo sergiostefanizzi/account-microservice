@@ -74,6 +74,7 @@ class KeycloakServiceTest {
     String accountId = UUID.randomUUID().toString();
     String accountId1 = UUID.randomUUID().toString();
     String accountId2 = UUID.randomUUID().toString();
+    String newValidationCode = UUID.randomUUID().toString();
 
     @BeforeEach
     void setUp() {
@@ -94,6 +95,7 @@ class KeycloakServiceTest {
         Map<String, List<String>> attributes = new HashMap<>();
         attributes.put("birthdate", List.of(this.account.getBirthdate().toString()));
         attributes.put("gender", List.of(this.account.getGender().toString()));
+        attributes.put("validationCode", List.of(this.newValidationCode));
         this.userRepresentation.setAttributes(attributes);
         this.userRepresentation.setEmailVerified(true);
 
@@ -265,7 +267,7 @@ class KeycloakServiceTest {
 
         when(this.userResource.toRepresentation()).thenReturn(this.userRepresentation);
 
-        UserRepresentation returnedUser = this.keycloakService.createUser(this.account);
+        UserRepresentation returnedUser = this.keycloakService.createUser(this.account, newValidationCode);
 
         assertEquals(returnedUser, this.userRepresentation);
         log.info(returnedUser.getEmail());
@@ -296,7 +298,7 @@ class KeycloakServiceTest {
         when(this.response.getStatus()).thenReturn(409);
 
         assertThrows(AccountAlreadyCreatedException.class,
-                () -> this.keycloakService.createUser(this.account));
+                () -> this.keycloakService.createUser(this.account, newValidationCode));
 
         verify(this.keycloak, times(1)).realm(anyString());
         verify(this.realmResource, times(1)).users();
@@ -424,6 +426,38 @@ class KeycloakServiceTest {
         verify(this.realmResource, times(1)).users();
         verify(this.usersResource, times(1)).get(anyString());
         verify(this.userResource, times(0)).toRepresentation();
+    }
+
+    @Test
+    void testValidateEmail_Success(){
+        when(this.keycloak.realm(anyString())).thenReturn(this.realmResource);
+        when(this.realmResource.users()).thenReturn(this.usersResource);
+        when(this.usersResource.get(anyString())).thenReturn(this.userResource);
+        when(this.userResource.toRepresentation()).thenReturn(this.userRepresentation);
+
+        boolean isEmailValidated = this.keycloakService.validateEmail(this.account.getId(), this.newValidationCode);
+
+        assertTrue(isEmailValidated);
+        verify(this.keycloak, times(1)).realm(anyString());
+        verify(this.realmResource, times(1)).users();
+        verify(this.usersResource, times(1)).get(anyString());
+        verify(this.userResource, times(1)).toRepresentation();
+    }
+
+    @Test
+    void testValidateEmail_Failed(){
+        when(this.keycloak.realm(anyString())).thenReturn(this.realmResource);
+        when(this.realmResource.users()).thenReturn(this.usersResource);
+        when(this.usersResource.get(anyString())).thenReturn(this.userResource);
+        when(this.userResource.toRepresentation()).thenReturn(this.userRepresentation);
+
+        boolean isEmailValidated = this.keycloakService.validateEmail(this.account.getId(), UUID.randomUUID().toString());
+
+        assertFalse(isEmailValidated);
+        verify(this.keycloak, times(1)).realm(anyString());
+        verify(this.realmResource, times(1)).users();
+        verify(this.usersResource, times(1)).get(anyString());
+        verify(this.userResource, times(1)).toRepresentation();
     }
 
     @Test

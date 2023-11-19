@@ -10,6 +10,7 @@ import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.ActionForbiddenException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.EmailNotValidatedException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -365,9 +366,10 @@ class AccountsControllerTest {
 
     @Test
     void testDeleteAccountById_Then_204() throws Exception{
-        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
-
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
+
 
         this.mockMvc.perform(delete("/accounts/{accountId}",this.savedAccount.getId())
                         .accept(MediaType.APPLICATION_JSON))
@@ -380,7 +382,6 @@ class AccountsControllerTest {
 
     @Test
     void testDeleteAccountById_Then_403() throws Exception{
-
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
 
@@ -390,6 +391,23 @@ class AccountsControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(res -> assertTrue(res.getResolvedException() instanceof ActionForbiddenException))
                 .andExpect(jsonPath("$.error").value("Forbidden: Account with id "+this.jwtAuthenticationToken.getToken().getClaim("sub")+" can not perform this action"))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+    }
+
+    @Test
+    void testDeleteAccountById_EmailNotValidated_Then_403() throws Exception{
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(false);
+
+        MvcResult result = this.mockMvc.perform(delete("/accounts/{accountId}",this.savedAccount.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(res -> assertTrue(res.getResolvedException() instanceof EmailNotValidatedException))
+                .andExpect(jsonPath("$.error").value("Account's email with id "+this.jwtAuthenticationToken.getToken().getClaim("sub")+" is not validated"))
                 .andReturn();
         String resultAsString = result.getResponse().getContentAsString();
         log.info("Errors\n"+resultAsString);
@@ -428,8 +446,9 @@ class AccountsControllerTest {
         //converto l'account che voglio aggiornare in formato json
         String accountToUpdateJson = this.objectMapper.writeValueAsString(this.accountToUpdate);
 
-        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
 
         when(this.accountsService.update(anyString(), any(AccountPatch.class))).thenReturn(updatedAccount);
 
@@ -472,8 +491,9 @@ class AccountsControllerTest {
                 "name must match \"^[a-zA-Z]+$\"",
                 "surname must match \"^[a-zA-Z]+$\"");
 
-        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
 
         MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -496,8 +516,9 @@ class AccountsControllerTest {
         ((ObjectNode) jsonNode).put("gender","female");
         String accountToUpdateJson = this.objectMapper.writeValueAsString(jsonNode);
 
-        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
 
         MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -527,8 +548,9 @@ class AccountsControllerTest {
                 "name size must be between 2 and 50",
                 "surname size must be between 2 and 50");
 
-        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
 
         MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -560,6 +582,27 @@ class AccountsControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(res -> assertTrue(res.getResolvedException() instanceof ActionForbiddenException))
                 .andExpect(jsonPath("$.error").value("Forbidden: Account with id "+this.jwtAuthenticationToken.getToken().getClaim("sub")+" can not perform this action"))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+    }
+
+    @Test
+    void testUpdateAccountById_EmailNotValidated_Then_403() throws Exception{
+        //converto l'account che voglio aggiornare in formato json
+        String accountToUpdateJson = this.objectMapper.writeValueAsString(this.accountToUpdate);
+
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(false);
+
+        MvcResult result = this.mockMvc.perform(patch("/accounts/{accountId}",this.savedAccount.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(accountToUpdateJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(res -> assertTrue(res.getResolvedException() instanceof EmailNotValidatedException))
+                .andExpect(jsonPath("$.error").value("Account's email with id "+this.jwtAuthenticationToken.getToken().getClaim("sub")+" is not validated"))
                 .andReturn();
         String resultAsString = result.getResponse().getContentAsString();
         log.info("Errors\n"+resultAsString);

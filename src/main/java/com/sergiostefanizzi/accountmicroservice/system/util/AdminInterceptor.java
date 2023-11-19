@@ -37,11 +37,17 @@ public class AdminInterceptor implements HandlerInterceptor {
         String tokenAccountId = getJwtAccountId();
         // l'admin non puo' assegnarsi nuovamente il ruolo di admin e non si puo' eliminare da solo
         // l'admin deve avere l'email validata
-        if (accountId.equals(tokenAccountId) || !keycloakService.checksEmailValidated(tokenAccountId)){
+        if (accountId.equals(tokenAccountId)){
             throw new ActionForbiddenException(tokenAccountId);
         }
-        Boolean isUserActive = keycloakService.checkActiveById(accountId);
-        if(!isUserActive){
+
+        if(request.getMethod().equalsIgnoreCase("PUT")){
+            if(!keycloakService.checksEmailValidated(accountId)){
+                throw new EmailNotValidatedException(accountId);
+            }
+        }
+
+        if(!keycloakService.checkActiveById(accountId)){
             throw new AccountNotFoundException(accountId);
         }
         return true;

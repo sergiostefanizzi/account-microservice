@@ -5,7 +5,9 @@ import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.service.AdminsService;
 import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.ActionForbiddenException;
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.AdminAlreadyCreatedException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.EmailNotValidatedException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,15 +31,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.hasSize;
-
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -132,17 +133,16 @@ class AdminsControllerTest {
     //TODO fare test AdminController con nuovi interceptor
     @Test
     void testAddAdminById_Then_201() throws Exception{
-
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
 
-        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.adminsService.save(anyString())).thenReturn(this.savedAccount1.getId());
 
-        when(this.adminsService.save(anyString())).thenReturn(this.accountId);
-
-        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.accountId)
+        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.savedAccount1.getId())
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$").value(this.accountId))
+                .andExpect(jsonPath("$").value(this.savedAccount1.getId()))
                 .andReturn();
 
         // salvo risposta in result per visualizzarla
@@ -150,17 +150,50 @@ class AdminsControllerTest {
         log.info("New Admin ID --> "+resultAsString);
     }
 
+    @Test
+    void testAddAdminById_Then_403() throws Exception{
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+
+        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.savedAccount.getId())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(res-> assertTrue(res.getResolvedException() instanceof ActionForbiddenException))
+                .andExpect(jsonPath("$.error").value("Forbidden: Account with id "+this.savedAccount.getId()+" can not perform this action"))
+                .andReturn();
+
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+
+    }
+
+    @Test
+    void testAddAdminById_EmailNotValidated_Then_403() throws Exception{
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(false);
+
+        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.savedAccount1.getId())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(res-> assertTrue(res.getResolvedException() instanceof EmailNotValidatedException))
+                .andExpect(jsonPath("$.error").value("Account's email with id "+this.savedAccount1.getId()+" is not validated"))
+                .andReturn();
+
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+
+    }
 
     @Test
     void testAddAdminById_Then_404() throws Exception{
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
 
-        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",accountId)
+        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.savedAccount1.getId())
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(res-> assertTrue(res.getResolvedException() instanceof AccountNotFoundException))
-                .andExpect(jsonPath("$.error").value("Account with id "+accountId+" not found!"))
+                .andExpect(jsonPath("$.error").value("Account with id "+this.savedAccount1.getId()+" not found!"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();
@@ -170,16 +203,17 @@ class AdminsControllerTest {
 
     @Test
     void testAddAdminById_Then_409() throws Exception{
-        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
 
-        when(this.adminsService.save(anyString())).thenThrow(new AdminAlreadyCreatedException(accountId));
+        when(this.adminsService.save(anyString())).thenThrow(new AdminAlreadyCreatedException(this.savedAccount1.getId()));
 
-        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",accountId)
+        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.savedAccount1.getId())
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isConflict())
                 .andExpect(res-> assertTrue(res.getResolvedException() instanceof AdminAlreadyCreatedException))
-                .andExpect(jsonPath("$.error").value("Conflict! Admin with id "+accountId+" already created!"))
+                .andExpect(jsonPath("$.error").value("Conflict! Admin with id "+this.savedAccount1.getId()+" already created!"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();
@@ -188,24 +222,25 @@ class AdminsControllerTest {
 
     @Test
     void deleteAdminById_Then_204() throws Exception{
-        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
 
-        this.mockMvc.perform(delete("/admins/{accountId}",accountId)
+        this.mockMvc.perform(delete("/admins/{accountId}",this.savedAccount1.getId())
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 
     }
 
+
     @Test
     void deleteAdminById_Then_404() throws Exception{
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
-        MvcResult result = this.mockMvc.perform(delete("/admins/{accountId}",accountId)
+        MvcResult result = this.mockMvc.perform(delete("/admins/{accountId}",this.savedAccount1.getId())
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(res-> assertTrue(res.getResolvedException() instanceof AccountNotFoundException))
-                .andExpect(jsonPath("$.error").value("Account with id "+accountId+" not found!"))
+                .andExpect(jsonPath("$.error").value("Account with id "+this.savedAccount1.getId()+" not found!"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();

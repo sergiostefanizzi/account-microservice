@@ -130,7 +130,6 @@ class AdminsControllerTest {
     }
 
 
-    //TODO fare test AdminController con nuovi interceptor
     @Test
     void testAddAdminById_Then_201() throws Exception{
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);

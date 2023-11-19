@@ -43,7 +43,9 @@ public class AccountInterceptor implements HandlerInterceptor {
                     throw new AccountAlreadyActivatedException(accountId);
                 }
             }else {
-                throw new EmailNotValidatedException(accountId);
+                if(!request.getMethod().equalsIgnoreCase("PUT")){
+                    throw new EmailNotValidatedException(accountId);
+                }
             }
         }else {
             throw new AccountNotFoundException(accountId);

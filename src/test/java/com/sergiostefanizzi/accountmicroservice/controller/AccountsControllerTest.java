@@ -7,10 +7,8 @@ import com.sergiostefanizzi.accountmicroservice.model.Account;
 import com.sergiostefanizzi.accountmicroservice.model.AccountPatch;
 import com.sergiostefanizzi.accountmicroservice.service.AccountsService;
 import com.sergiostefanizzi.accountmicroservice.service.KeycloakService;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountAlreadyCreatedException;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.AccountNotFoundException;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.ActionForbiddenException;
-import com.sergiostefanizzi.accountmicroservice.system.exceptions.EmailNotValidatedException;
+import com.sergiostefanizzi.accountmicroservice.system.exceptions.*;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -127,7 +125,7 @@ class AccountsControllerTest {
 
     // Add account Success
 
-    //TODO fare test AccountController con nuovi interceptor
+
     @Test
     void testAddAccount_Then_201() throws Exception {
         this.savedAccount.setPassword(null);
@@ -629,12 +627,14 @@ class AccountsControllerTest {
 
 
 
-/*
+
     // Account activation SUCCESS
     @Test
     void testActivateAccountById_Then_204() throws Exception{
-        this.savedAccountJpa.setValidatedAt(null);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(false);
+
         this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", UUID.randomUUID().toString())
@@ -647,8 +647,10 @@ class AccountsControllerTest {
     void testActivateAccountById_NotWellFormatted_Then_400() throws Exception{
         String validationCode = UUID.randomUUID().toString();
         String invalidValidationCode = validationCode.substring(0,validationCode.length()-1);
-        this.savedAccountJpa.setValidatedAt(null);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(false);
+
         MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .queryParam("validation_code", invalidValidationCode)
@@ -665,8 +667,10 @@ class AccountsControllerTest {
     void testActivateAccountById_Invalid_Code_Then_400() throws Exception{
         String validationCode = UUID.randomUUID().toString();
 
-        this.savedAccountJpa.setValidatedAt(null);
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(false);
+
         doThrow(new AccountNotActivedException(this.savedAccount.getId())).when(this.accountsService).active(anyString(), anyString());
         MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -686,7 +690,10 @@ class AccountsControllerTest {
         String validationCode = UUID.randomUUID().toString();
 
 
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
         when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
+        when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(true);
+
         doThrow(new AccountAlreadyActivatedException(this.savedAccount.getId())).when(this.accountsService).active(anyString(), anyString());
         MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -701,8 +708,46 @@ class AccountsControllerTest {
 
     }
 
- */
+    @Test
+    void testActivateAccountById_Then_403() throws Exception{
+        String validationCode = UUID.randomUUID().toString();
 
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+
+        MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.invalidId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .queryParam("validation_code", validationCode)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(res-> assertTrue(res.getResolvedException() instanceof ActionForbiddenException))
+                .andExpect(jsonPath("$.error").value("Forbidden: Account with id "+this.savedAccount.getId()+" can not perform this action"))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+
+    }
+
+
+    @Test
+    void testActivateAccountById_Then_404() throws Exception{
+        String validationCode = UUID.randomUUID().toString();
+
+
+        when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(false);
+
+        MvcResult result = this.mockMvc.perform(put("/accounts/{accountId}",this.savedAccount.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .queryParam("validation_code", validationCode)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(res -> assertTrue(res.getResolvedException() instanceof AccountNotFoundException))
+                .andExpect(jsonPath("$.error").value("Account with id "+this.savedAccount.getId()+" not found!"))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+
+    }
 
 
 }

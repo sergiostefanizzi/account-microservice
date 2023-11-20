@@ -47,7 +47,9 @@ public class AccountsIT {
     private Account newAccount;
     private Account savedAccountToDelete;
     private Account savedAccountToUpdate;
+    private Account savedAccountToValidate;
     private Account savedAccountLoginError;
+    private final String validationCode = "86d115b2-f6b2-4cf9-8524-7e03f8a3ece9";
 
 
 
@@ -77,6 +79,14 @@ public class AccountsIT {
         this.savedAccountToUpdate.setName("Pinco");
         this.savedAccountToUpdate.setSurname("Pallino");
         this.savedAccountToUpdate.setId("7e5b9fc2-f31c-4120-aaf8-c1a208179cdd");
+
+        this.savedAccountToValidate = new Account("pinco.to.validate@gmail.com",
+                LocalDate.of(1970,3,15),
+                Account.GenderEnum.MALE,
+                "dshjdfkdjsf32!");
+        this.savedAccountToValidate.setName("Pinco");
+        this.savedAccountToValidate.setSurname("Pallino");
+        this.savedAccountToValidate.setId("8a890b77-300d-4b6e-bf55-325a4f862690");
 
 
         this.savedAccountLoginError = new Account("pinco.login.error@gmail.com",
@@ -745,31 +755,43 @@ public class AccountsIT {
     }
 
 
-/*
+
     // Account activation SUCCESS
 
     @Test
-    void testActivateAccountById_Then_204() throws Exception{
+    void testActivateAccountById_Then_204() throws JsonProcessingException {
+        String accessToken = getAccessToken(this.savedAccountToValidate);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
         ResponseEntity<Void> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}?validation_code={code}",
                 HttpMethod.PUT,
-                HttpEntity.EMPTY,
+                new HttpEntity<>(headers),
                 Void.class,
-                108L,
-                "d5a84c1e-89b9-40a4-a7a0-1a3f8fbd5472");
+                this.savedAccountToValidate.getId(),
+                this.validationCode);
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        invalidateEmail(this.savedAccountToValidate);
     }
 
     // Account activation Failed
     @Test
     void testActivateAccountById_NotWellFormatted_Then_400() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountToValidate);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
         String validationCode = UUID.randomUUID().toString();
         String invalidValidationCode = validationCode.substring(0,validationCode.length()-1);
 
         ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}?validation_code={code}",
-                HttpMethod.PUT, HttpEntity.EMPTY,
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
                 String.class,
-                108L,
+                this.savedAccountToValidate.getId(),
                 invalidValidationCode);
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -779,53 +801,104 @@ public class AccountsIT {
 
     @Test
     void testActivateAccountById_Invalid_Code_Then_400() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountToValidate);
+        invalidateEmail(this.savedAccountToValidate);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
         String invalidValidationCode = UUID.randomUUID().toString();
 
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}?validation_code={code}",
-                HttpMethod.PUT, HttpEntity.EMPTY,
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
                 String.class,
-                108L,
+                this.savedAccountToValidate.getId(),
                 invalidValidationCode);
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Error during activation of the account!", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
+        validateEmail(this.savedAccountToValidate);
     }
 
     @Test
     void testActivateAccountById_Account_AlreadyActivated_Then_400() throws Exception{
+        validateEmail(this.savedAccountToValidate);
+        String accessToken = getAccessToken(this.savedAccountToValidate);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
 
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}?validation_code={code}",
                 HttpMethod.PUT,
-                HttpEntity.EMPTY,
+                new HttpEntity<>(headers),
                 String.class,
-                101L,
-                "f13e7cf9-fcb2-4650-9648-4efae38ca4ac");
+                this.savedAccountToValidate.getId(),
+                this.validationCode);
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Account with id "+101L+" already activated!", node.get("error").asText());
+        assertEquals("Account with id "+this.savedAccountToValidate.getId()+" already activated!", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
+        invalidateEmail(this.savedAccountToValidate);
     }
 
     @Test
-    void testActivateAccountById_AccountNotFound_Then_404() throws Exception{
-        String invalidValidationCode = UUID.randomUUID().toString();
+    void testActivateAccountById_Then_401(){
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.PUT,
+                HttpEntity.EMPTY,
+                String.class,
+                this.savedAccountLoginError.getId(),
+                this.validationCode);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+
+    }
+
+    @Test
+    void testActivateAccountById_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountToValidate);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
 
         ResponseEntity<String> response = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}?validation_code={code}",
-                HttpMethod.PUT, HttpEntity.EMPTY,
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
                 String.class,
-                Long.MAX_VALUE,
-                invalidValidationCode);
+                this.savedAccountLoginError.getId(),
+                this.validationCode);
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("Forbidden: Account with id "+this.savedAccountToValidate.getId()+" can not perform this action", node.get("error").asText());
+        log.info("Error --> "+node.get("error").asText());
+    }
+    @Test
+    void testActivateAccountById_AccountNotFound_Then_404() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountToValidate);
+        deletedUser(this.savedAccountToValidate);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}?validation_code={code}",
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
+                String.class,
+                this.savedAccountToValidate.getId(),
+                this.validationCode);
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Account with id "+Long.MAX_VALUE+" not found!", node.get("error").asText());
+        assertEquals("Account with id "+this.savedAccountToValidate.getId()+" not found!", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
+        restoreDeletedUser(this.savedAccountToValidate);
     }
 
- */
+
 
 
 

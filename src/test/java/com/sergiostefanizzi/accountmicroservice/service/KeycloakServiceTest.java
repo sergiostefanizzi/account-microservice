@@ -322,10 +322,20 @@ class KeycloakServiceTest {
 
     @Test
     void testRemoveUser_Success(){
+        RoleRepresentation adminRealmRole = new RoleRepresentation("admin","Admin role",false);
+        RoleRepresentation userRealmRole = new RoleRepresentation("user","User role",false);
+
+        List<RoleRepresentation> realRoleList = List.of(userRealmRole);
         when(this.keycloak.realm(anyString())).thenReturn(this.realmResource);
         when(this.realmResource.users()).thenReturn(this.usersResource);
         when(this.usersResource.get(anyString())).thenReturn(this.userResource);
         when(this.userResource.toRepresentation()).thenReturn(this.userRepresentation);
+        when(this.realmResource.roles()).thenReturn(this.realmRolesResource);
+        when(this.realmRolesResource.get(anyString())).thenReturn(this.realmRoleResource);
+        when(this.realmRoleResource.toRepresentation()).thenReturn(adminRealmRole);
+        when(this.userResource.roles()).thenReturn(this.roleMappingResource);
+        when(this.roleMappingResource.realmLevel()).thenReturn(this.roleScopeResource);
+        when(this.roleScopeResource.listEffective()).thenReturn(realRoleList);
 
         this.keycloakService.removeUser(this.account.getId());
 
@@ -333,6 +343,41 @@ class KeycloakServiceTest {
         verify(this.realmResource, times(1)).users();
         verify(this.usersResource, times(1)).get(anyString());
         verify(this.userResource, times(1)).toRepresentation();
+        verify(this.realmRolesResource, times(1)).get(anyString());
+        verify(this.realmRoleResource, times(1)).toRepresentation();
+        verify(this.userResource, times(1)).roles();
+        verify(this.roleMappingResource, times(1)).realmLevel();
+        verify(this.roleScopeResource, times(1)).listEffective();
+    }
+
+    @Test
+    void testRemoveUser_Admin_Success(){
+        RoleRepresentation adminRealmRole = new RoleRepresentation("admin","Admin role",false);
+        RoleRepresentation userRealmRole = new RoleRepresentation("user","User role",false);
+
+        List<RoleRepresentation> realRoleList = List.of(userRealmRole, adminRealmRole);
+        when(this.keycloak.realm(anyString())).thenReturn(this.realmResource);
+        when(this.realmResource.users()).thenReturn(this.usersResource);
+        when(this.usersResource.get(anyString())).thenReturn(this.userResource);
+        when(this.userResource.toRepresentation()).thenReturn(this.userRepresentation);
+        when(this.realmResource.roles()).thenReturn(this.realmRolesResource);
+        when(this.realmRolesResource.get(anyString())).thenReturn(this.realmRoleResource);
+        when(this.realmRoleResource.toRepresentation()).thenReturn(adminRealmRole);
+        when(this.userResource.roles()).thenReturn(this.roleMappingResource);
+        when(this.roleMappingResource.realmLevel()).thenReturn(this.roleScopeResource);
+        when(this.roleScopeResource.listEffective()).thenReturn(realRoleList);
+
+        this.keycloakService.removeUser(this.account.getId());
+
+        verify(this.keycloak, times(1)).realm(anyString());
+        verify(this.realmResource, times(1)).users();
+        verify(this.usersResource, times(1)).get(anyString());
+        verify(this.userResource, times(1)).toRepresentation();
+        verify(this.realmRolesResource, times(1)).get(anyString());
+        verify(this.realmRoleResource, times(1)).toRepresentation();
+        verify(this.userResource, times(1)).roles();
+        verify(this.roleMappingResource, times(1)).realmLevel();
+        verify(this.roleScopeResource, times(1)).listEffective();
     }
 
     @Test

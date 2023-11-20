@@ -69,12 +69,16 @@ public class KeycloakService {
     }
 
     public void removeUser(String accountId) {
-        UserResource userResource = this.keycloak
-                .realm(REALM_NAME)
+        RealmResource realmResource = this.keycloak
+                .realm(REALM_NAME);
+
+        UserResource userResource = realmResource
                 .users()
                 .get(accountId);
 
         UserRepresentation user = userResource.toRepresentation();
+
+        setRoles(userResource, realmResource, "admin",true);
 
         user.setEnabled(false);
         user.setEmailVerified(false);
@@ -239,6 +243,23 @@ public class KeycloakService {
         RoleScopeResource roleScopeResource = roles
                 .realmLevel();
 
+        if(isUnset){
+            if(roleScopeResource.listEffective().contains(userRealmRole)){
+                roleScopeResource
+                        .remove(Collections.singletonList(userRealmRole));
+            }else{
+                return false;
+            }
+        }else{
+            if(!roleScopeResource.listEffective().contains(userRealmRole)){
+                roleScopeResource.add(Collections.singletonList(userRealmRole));
+            }else{
+                return false;
+            }
+
+        }
+
+        /*
         if(roleScopeResource
                 .listEffective()
                 .contains(userRealmRole)){
@@ -252,6 +273,8 @@ public class KeycloakService {
             roleScopeResource
                     .add(Collections.singletonList(userRealmRole));
         }
+
+         */
         return true;
     }
 

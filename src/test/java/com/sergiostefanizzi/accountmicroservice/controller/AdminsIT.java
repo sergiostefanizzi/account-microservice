@@ -8,10 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.resource.RealmResource;
-import org.keycloak.admin.client.resource.RoleMappingResource;
-import org.keycloak.admin.client.resource.RoleScopeResource;
-import org.keycloak.admin.client.resource.UserResource;
+import org.keycloak.admin.client.resource.*;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -146,6 +143,36 @@ public class AdminsIT {
 
         userResource
                 .update(userRepresentation);
+    }
+
+    private void restoreDeletedAdmin(Account account) {
+        RealmResource realmResource = this.keycloak.realm("social-accounts");
+        UsersResource usersResource = realmResource
+                .users();
+        UserResource userResource = usersResource
+                .get(account.getId());
+        UserRepresentation userRepresentation = userResource
+                .toRepresentation();
+
+        userRepresentation.setEnabled(true);
+        userRepresentation.setEmailVerified(true);
+
+        userResource
+                .update(userRepresentation);
+
+
+        RoleRepresentation userRealmRole = realmResource
+                .roles()
+                .get("admin")
+                .toRepresentation();
+
+        RoleMappingResource roles = usersResource
+                .get(account.getId())
+                .roles();
+
+        RoleScopeResource roleScopeResource = roles
+                .realmLevel();
+        roleScopeResource.add(Collections.singletonList(userRealmRole));
     }
 
     private void removeAdminRole(Account account) {
@@ -300,7 +327,7 @@ public class AdminsIT {
 
 
     @Test
-    void deleteAdminById_Then_204() throws Exception{
+    void deleteAdminById_DeleteAdmin_Then_204() throws Exception{
         String accessToken = getAccessToken(this.savedAdmin);
 
         HttpHeaders headers = new HttpHeaders();
@@ -313,8 +340,25 @@ public class AdminsIT {
                 this.savedAdminToDelete.getId());
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
 
-        restoreDeletedUser(this.savedAdminToDelete);
+        restoreDeletedAdmin(this.savedAdminToDelete);
+    }
 
+    @Test
+    void deleteAdminById_DeleteUser_Then_204() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+        removeAdminRole(this.savedAdminToDelete);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<Void> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}",
+                HttpMethod.DELETE,
+                new HttpEntity<>(headers),
+                Void.class,
+                this.savedAdminToDelete.getId());
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+
+        restoreDeletedAdmin(this.savedAdminToDelete);
     }
 
     @Test

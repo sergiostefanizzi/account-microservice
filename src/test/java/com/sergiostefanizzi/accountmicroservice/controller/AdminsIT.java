@@ -45,11 +45,11 @@ public class AdminsIT {
 
     @Autowired
     private ObjectMapper objectMapper;
-    private Account savedAccount1;
+    private Account savedAdmin;
     //admin account
-    private Account savedAccount2;
-    private Account savedAccount3;
-    private Account savedAccount4;
+    private Account savedAdminToBe;
+    private Account savedAccountLoginError;
+    private Account savedAdminToDelete;
     private final String invalidId = UUID.randomUUID().toString();
 
 
@@ -59,302 +59,79 @@ public class AdminsIT {
         //this.baseUrlAccounts = this.baseUrl + ":" +port+ "/accounts";
         this.baseUrl = this.baseUrl + ":" +port+ "/admins";
 
-        this.savedAccount1 = new Account("pinco.pallino@gmail.com",
+        this.savedAdmin = new Account("pinco.admin@gmail.com",
                 LocalDate.of(1970,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount1.setName("Pinco");
-        this.savedAccount1.setSurname("Pallino");
-        this.savedAccount1.setId("c8318aba-2312-46bf-a9a9-872102df1ee5");
+        this.savedAdmin.setName("Pinco");
+        this.savedAdmin.setSurname("Pallino");
+        this.savedAdmin.setId("66d8ca7e-cc64-48a6-a9f6-d611055ba24a");
 
 
-        this.savedAccount2 = new Account("pinco.pallino2@gmail.com",
+        this.savedAdminToBe = new Account("pinco.admin.to.be@gmail.com",
                 LocalDate.of(1970,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount2.setName("Pinco");
-        this.savedAccount2.setSurname("Pallino");
-        this.savedAccount2.setId("da9bab94-e963-4803-b262-50b925ed7540");
+        this.savedAdminToBe.setName("Pinco");
+        this.savedAdminToBe.setSurname("Pallino");
+        this.savedAdminToBe.setId("14e80daf-ccbd-4a7f-ac83-1cacf809fc07");
 
-        this.savedAccount3 = new Account("pinco.pallino3@gmail.com",
+
+        this.savedAdminToDelete = new Account("pinco.admin.delete@gmail.com",
                 LocalDate.of(1970,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount3.setName("Pinco");
-        this.savedAccount3.setSurname("Pallino");
-        this.savedAccount3.setId("28ac0564-8f56-44d6-ada5-1050753cfbbd");
+        this.savedAdminToDelete.setName("Pinco");
+        this.savedAdminToDelete.setSurname("Pallino");
+        this.savedAdminToDelete.setId("6168d0b9-6aa1-43e8-9fd0-ce1c57f95448");
 
-        this.savedAccount4 = new Account("pinco.pallino4@gmail.com",
+        this.savedAccountLoginError = new Account("pinco.login.error@gmail.com",
                 LocalDate.of(1970,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount4.setName("Pinco");
-        this.savedAccount4.setSurname("Pallino");
-        this.savedAccount4.setId("4652de2d-c957-4840-a2d7-4cf2b11ab012");
-    }
+        this.savedAccountLoginError.setName("Pinco");
+        this.savedAccountLoginError.setSurname("Pallino");
+        this.savedAccountLoginError.setId("5c62d672-cfa5-4ebf-a9c3-1622198c69b");
 
-
-    @Test
-    void testAddAdminById_Then_201() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}",
-                HttpMethod.PUT,
-                new HttpEntity<>(headers),
-                String.class,
-                this.savedAccount1.getId());
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        String savedAdminId = response.getBody();
-        assertNotNull(savedAdminId);
-        assertEquals(this.savedAccount1.getId(), savedAdminId);
-        log.info("New Admin with Id --> "+savedAdminId);
-
-        removeAdminRole(this.savedAccount1);
-    }
-
-    @Test
-    void testAddAdminById_Then_401() throws Exception{
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/{accountId}",
-                HttpMethod.PUT,
-                HttpEntity.EMPTY,
-                String.class,
-                this.savedAccount2.getId());
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
-    void testAddAdminById_Then_403() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount4);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/{accountId}",
-                HttpMethod.PUT,
-                new HttpEntity<>(headers),
-                String.class,
-                this.savedAccount1.getId());
-
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-    }
-
-    @Test
-    void testAddAdminById_Then_404() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/{accountId}",
-                HttpMethod.PUT,
-                new HttpEntity<>(headers),
-                String.class,
-                this.invalidId);
-
-        JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Account with id "+this.invalidId+" not found!", node.get("error").asText());
-        log.info("Error --> " + node.get("error").asText());
-    }
-
-    @Test
-    void testAddAdminById_Then_409() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/{accountId}",
-                HttpMethod.PUT,
-                new HttpEntity<>(headers),
-                String.class,
-                this.savedAccount2.getId());
-
-        JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        assertEquals("Forbidden: Account with id "+this.savedAccount2.getId()+" can not perform this action", node.get("error").asText());
-        log.info("Error --> " + node.get("error").asText());
-    }
-
-    @Test
-    void deleteAdminById_Then_204() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<Void> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}",
-                HttpMethod.DELETE,
-                new HttpEntity<>(headers),
-                Void.class,
-                this.savedAccount3.getId());
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-
-        restoreDeletedUser(this.savedAccount3);
 
     }
 
-    @Test
-    void deleteAdminById_Then_401() throws Exception{
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/{accountId}",
-                HttpMethod.DELETE,
-                HttpEntity.EMPTY,
-                String.class,
-                this.savedAccount3.getId());
+    private void invalidateEmail(Account account) {
+        UserResource userResource = this.keycloak.realm("social-accounts")
+                .users()
+                .get(account.getId());
+        UserRepresentation userRepresentation = userResource
+                .toRepresentation();
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        userRepresentation.setEmailVerified(false);
+        userResource
+                .update(userRepresentation);
     }
 
-    @Test
-    void deleteAdminById_Then_403() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount4);
+    private void validateEmail(Account account) {
+        UserResource userResource = this.keycloak.realm("social-accounts")
+                .users()
+                .get(account.getId());
+        UserRepresentation userRepresentation = userResource
+                .toRepresentation();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/{accountId}",
-                HttpMethod.DELETE,
-                new HttpEntity<>(headers),
-                String.class,
-                this.savedAccount4.getId());
-
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        userRepresentation.setEmailVerified(true);
+        userResource
+                .update(userRepresentation);
     }
 
-    @Test
-    void deleteAdminById_Then_404() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
+    private void deletedUser(Account account) {
+        UserResource userResource = this.keycloak.realm("social-accounts")
+                .users()
+                .get(account.getId());
+        UserRepresentation userRepresentation = userResource
+                .toRepresentation();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(
-                this.baseUrl+"/{accountId}",
-                HttpMethod.DELETE,
-                new HttpEntity<>(headers),
-                String.class,
-                invalidId);
-
-        JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Account with id "+invalidId+" not found!", node.get("error").asText());
-        log.info("Error --> " + node.get("error").asText());
+        userRepresentation.setEnabled(false);
+        userRepresentation.setEmailVerified(false);
+        userResource
+                .update(userRepresentation);
     }
-
-    @Test
-    void testFindAllAccounts_Then_200() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<List<Account>> responseAccountList = this.testRestTemplate.exchange(
-                this.baseUrl+"/accounts?removedAccount={removedProfile}",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                new ParameterizedTypeReference<List<Account>>() {
-                },
-                false);
-        assertEquals(HttpStatus.OK, responseAccountList.getStatusCode());
-        assertNotNull(responseAccountList.getBody());
-        List<Account> savedProfileList = responseAccountList.getBody();
-        assertTrue(savedProfileList.size() >= 3);
-        log.info(responseAccountList.toString());
-    }
-
-    @Test
-    void testFindAllAccounts_Deleted_Then_200() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<List<Account>> responseAccountList = this.testRestTemplate.exchange(
-                this.baseUrl+"/accounts?removedAccount={removedProfile}",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                new ParameterizedTypeReference<List<Account>>() {
-                },
-                true);
-        assertEquals(HttpStatus.OK, responseAccountList.getStatusCode());
-        assertNotNull(responseAccountList.getBody());
-        List<Account> savedProfileList = responseAccountList.getBody();
-        assertTrue(savedProfileList.size() >= 3);
-        log.info(responseAccountList.toString());
-    }
-
-    @Test
-    void testFindAllAccounts_Then_400() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/accounts?removedAccount=notBoolean",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class);
-
-        String error = "Type mismatch";
-        JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(error ,node.get("error").asText());
-        log.info("Error -> "+node.get("error").asText());
-    }
-
-    @Test
-    void testFindAllAccounts_MissingQueryParam_Then_400() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount2);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/accounts",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class);
-
-        String error = "Required request parameter is missing";
-        JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(error ,node.get("error").asText());
-        log.info("Error -> "+node.get("error").asText());
-    }
-
-    @Test
-    void testFindAllAccounts_Then_401() throws Exception{
-        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/accounts",
-                HttpMethod.GET,
-                HttpEntity.EMPTY,
-                String.class);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-    @Test
-    void testFindAllAccounts_Then_403() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount4);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/accounts",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class);
-
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-    }
-
 
 
     private void restoreDeletedUser(Account account) {
@@ -365,6 +142,7 @@ public class AdminsIT {
                 .toRepresentation();
 
         userRepresentation.setEnabled(true);
+        userRepresentation.setEmailVerified(true);
 
         userResource
                 .update(userRepresentation);
@@ -406,6 +184,295 @@ public class AdminsIT {
         log.info("Access token = "+accessToken);
         return accessToken;
     }
+
+    @Test
+    void testAddAdminById_Then_201() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
+                String.class,
+                this.savedAdminToBe.getId());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        String savedAdminId = response.getBody();
+        assertNotNull(savedAdminId);
+        assertEquals(this.savedAdminToBe.getId(), savedAdminId);
+        log.info("New Admin with Id --> "+savedAdminId);
+
+        removeAdminRole(this.savedAdminToBe);
+    }
+
+    @Test
+    void testAddAdminById_Then_401(){
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.PUT,
+                HttpEntity.EMPTY,
+                String.class,
+                this.savedAccountLoginError.getId());
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void testAddAdminById_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountLoginError);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
+                String.class,
+                this.savedAdminToBe.getId());
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void testAddAdminById_EmailNotValidated_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+        invalidateEmail(this.savedAdminToBe);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
+                String.class,
+                this.savedAdminToBe.getId());
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("Account's email with id "+this.savedAdminToBe.getId()+" is not validated", node.get("error").asText());
+        log.info("Error --> "+node.get("error").asText());
+        validateEmail(this.savedAdminToBe);
+    }
+
+    @Test
+    void testAddAdminById_AlreadyCreated_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
+                String.class,
+                this.savedAdmin.getId());
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("Forbidden: Account with id "+this.savedAdmin.getId()+" can not perform this action", node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
+    }
+
+    @Test
+    void testAddAdminById_Then_404() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.PUT,
+                new HttpEntity<>(headers),
+                String.class,
+                this.invalidId);
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("Account with id "+this.invalidId+" not found!", node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
+    }
+
+
+
+    @Test
+    void deleteAdminById_Then_204() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<Void> response = this.testRestTemplate.exchange(this.baseUrl+"/{accountId}",
+                HttpMethod.DELETE,
+                new HttpEntity<>(headers),
+                Void.class,
+                this.savedAdminToDelete.getId());
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+
+        restoreDeletedUser(this.savedAdminToDelete);
+
+    }
+
+    @Test
+    void deleteAdminById_Then_401(){
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.DELETE,
+                HttpEntity.EMPTY,
+                String.class,
+                this.savedAccountLoginError.getId());
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void deleteAdminById_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountLoginError);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.DELETE,
+                new HttpEntity<>(headers),
+                String.class,
+                this.savedAdminToDelete.getId());
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void deleteAdminById_Then_404() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.DELETE,
+                new HttpEntity<>(headers),
+                String.class,
+                invalidId);
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("Account with id "+invalidId+" not found!", node.get("error").asText());
+        log.info("Error --> " + node.get("error").asText());
+    }
+
+    @Test
+    void testFindAllAccounts_Then_200() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<List<Account>> responseAccountList = this.testRestTemplate.exchange(
+                this.baseUrl+"/accounts?removedAccount={removedProfile}",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                new ParameterizedTypeReference<List<Account>>() {
+                },
+                false);
+        assertEquals(HttpStatus.OK, responseAccountList.getStatusCode());
+        assertNotNull(responseAccountList.getBody());
+        List<Account> savedProfileList = responseAccountList.getBody();
+        assertTrue(savedProfileList.size() >= 6);
+        log.info(responseAccountList.toString());
+    }
+
+    @Test
+    void testFindAllAccounts_Deleted_Then_200() throws Exception{
+        deletedUser(this.savedAdminToDelete);
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<List<Account>> responseAccountList = this.testRestTemplate.exchange(
+                this.baseUrl+"/accounts?removedAccount={removedProfile}",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                new ParameterizedTypeReference<List<Account>>() {
+                },
+                true);
+        assertEquals(HttpStatus.OK, responseAccountList.getStatusCode());
+        assertNotNull(responseAccountList.getBody());
+        List<Account> savedProfileList = responseAccountList.getBody();
+        assertTrue(savedProfileList.size() >= 5);
+        log.info(responseAccountList.toString());
+        restoreDeletedUser(this.savedAdminToDelete);
+    }
+
+    @Test
+    void testFindAllAccounts_Then_400() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/accounts?removedAccount=notBoolean",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class);
+
+        String error = "Type mismatch";
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(error ,node.get("error").asText());
+        log.info("Error -> "+node.get("error").asText());
+    }
+
+    @Test
+    void testFindAllAccounts_MissingQueryParam_Then_400() throws Exception{
+        String accessToken = getAccessToken(this.savedAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/accounts",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class);
+
+        String error = "Required request parameter is missing";
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(error ,node.get("error").asText());
+        log.info("Error -> "+node.get("error").asText());
+    }
+
+    @Test
+    void testFindAllAccounts_Then_401(){
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/accounts",
+                HttpMethod.GET,
+                HttpEntity.EMPTY,
+                String.class);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+    @Test
+    void testFindAllAccounts_Then_403() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountLoginError);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl+"/accounts",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+
 
 
 

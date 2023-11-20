@@ -427,7 +427,7 @@ public class AdminsIT {
         assertEquals(HttpStatus.OK, responseAccountList.getStatusCode());
         assertNotNull(responseAccountList.getBody());
         List<Account> savedProfileList = responseAccountList.getBody();
-        assertTrue(savedProfileList.size() >= 6);
+        assertTrue(savedProfileList.size() >= 7);
         log.info(responseAccountList.toString());
     }
 
@@ -449,7 +449,7 @@ public class AdminsIT {
         assertEquals(HttpStatus.OK, responseAccountList.getStatusCode());
         assertNotNull(responseAccountList.getBody());
         List<Account> savedProfileList = responseAccountList.getBody();
-        assertTrue(savedProfileList.size() >= 5);
+        assertTrue(savedProfileList.size() >= 6);
         log.info(responseAccountList.toString());
         restoreDeletedUser(this.savedAdminToDelete);
     }

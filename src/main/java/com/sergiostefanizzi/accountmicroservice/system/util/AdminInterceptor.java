@@ -41,15 +41,17 @@ public class AdminInterceptor implements HandlerInterceptor {
             throw new ActionForbiddenException(tokenAccountId);
         }
 
+        if(!keycloakService.checkActiveById(accountId)){
+            throw new AccountNotFoundException(accountId);
+        }
+
         if(request.getMethod().equalsIgnoreCase("PUT")){
             if(!keycloakService.checksEmailValidated(accountId)){
                 throw new EmailNotValidatedException(accountId);
             }
         }
 
-        if(!keycloakService.checkActiveById(accountId)){
-            throw new AccountNotFoundException(accountId);
-        }
+
         return true;
     }
 

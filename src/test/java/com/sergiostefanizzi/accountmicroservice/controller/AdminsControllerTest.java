@@ -62,7 +62,7 @@ class AdminsControllerTest {
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
-    private Account savedAccount;
+    private Account savedAdmin;
     private Account savedAccount1;
     private Account savedAccount2;
     private Account savedAccount3;
@@ -76,13 +76,13 @@ class AdminsControllerTest {
     @BeforeEach
     void setUp() {
 
-        this.savedAccount = new Account("pinco.pallino@gmail.com",
+        this.savedAdmin = new Account("pinco.admin@gmail.com",
                 LocalDate.of(1990,4,4),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount.setName("Pinco");
-        this.savedAccount.setSurname("Pallino");
-        this.savedAccount.setId(this.accountId);
+        this.savedAdmin.setName("Pinco");
+        this.savedAdmin.setSurname("Pallino");
+        this.savedAdmin.setId(this.accountId);
 
         SecurityContextHolder.setContext(securityContext);
 
@@ -90,7 +90,7 @@ class AdminsControllerTest {
         headers.put("alg","HS256");
         headers.put("typ","JWT");
         Map<String, Object> claims = new HashMap<>();
-        claims.put("sub",this.savedAccount.getId());
+        claims.put("sub",this.savedAdmin.getId());
         Jwt jwt = new Jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
                 Instant.now(),
                 Instant.MAX,
@@ -153,11 +153,11 @@ class AdminsControllerTest {
     void testAddAdminById_Then_403() throws Exception{
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
 
-        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.savedAccount.getId())
+        MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.savedAdmin.getId())
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden())
                 .andExpect(res-> assertTrue(res.getResolvedException() instanceof ActionForbiddenException))
-                .andExpect(jsonPath("$.error").value("Forbidden: Account with id "+this.savedAccount.getId()+" can not perform this action"))
+                .andExpect(jsonPath("$.error").value("Forbidden: Account with id "+this.savedAdmin.getId()+" can not perform this action"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();
@@ -168,6 +168,7 @@ class AdminsControllerTest {
     @Test
     void testAddAdminById_EmailNotValidated_Then_403() throws Exception{
         when(this.securityContext.getAuthentication()).thenReturn(this.jwtAuthenticationToken);
+        when(this.keycloakService.checkActiveById(anyString())).thenReturn(true);
         when(this.keycloakService.checksEmailValidated(anyString())).thenReturn(false);
 
         MvcResult result = this.mockMvc.perform(put("/admins/{accountId}",this.savedAccount1.getId())

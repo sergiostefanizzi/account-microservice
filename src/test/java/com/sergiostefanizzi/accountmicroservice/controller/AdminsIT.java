@@ -179,8 +179,8 @@ public class AdminsIT {
                 this.savedAccount2.getId());
 
         JsonNode node = this.objectMapper.readTree(response.getBody());
-        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertEquals("Conflict! Admin with id "+this.savedAccount2.getId()+" already created!", node.get("error").asText());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("Forbidden: Account with id "+this.savedAccount2.getId()+" can not perform this action", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
     }
 

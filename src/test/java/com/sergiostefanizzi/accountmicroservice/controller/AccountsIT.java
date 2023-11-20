@@ -45,14 +45,14 @@ public class AccountsIT {
     @Autowired
     private ObjectMapper objectMapper;
     private Account newAccount;
-    private Account savedAccount1;
-    private Account savedAccount2;
-    private Account savedAccount3;
-    private final String invalidId = UUID.randomUUID().toString();
+    private Account savedAccountToDelete;
+    private Account savedAccountToUpdate;
+    private Account savedAccountLoginError;
+
 
 
     @BeforeEach
-    void setUp() throws JsonProcessingException {
+    void setUp(){
         this.baseUrl = this.baseUrl + ":" +port+ "/accounts";
 
         this.newAccount = new Account("mario.rossi@gmail.com",
@@ -62,31 +62,30 @@ public class AccountsIT {
         this.newAccount.setName("Mario");
         this.newAccount.setSurname("Rossi");
 
-        this.savedAccount1 = new Account("pinco.pallino@gmail.com",
+        this.savedAccountToDelete = new Account("pinco.delete@gmail.com",
                 LocalDate.of(1970,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount1.setName("Pinco");
-        this.savedAccount1.setSurname("Pallino");
-        this.savedAccount1.setId("c8318aba-2312-46bf-a9a9-872102df1ee5");
+        this.savedAccountToDelete.setName("Pinco");
+        this.savedAccountToDelete.setSurname("Pallino");
+        this.savedAccountToDelete.setId("0a7c3c06-7e77-4473-9111-66a9aa410e9c");
 
-
-        this.savedAccount2 = new Account("pinco.pallino2@gmail.com",
+        this.savedAccountToUpdate = new Account("pinco.update@gmail.com",
                 LocalDate.of(1970,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount2.setName("Pinco");
-        this.savedAccount2.setSurname("Pallino");
-        this.savedAccount2.setId("da9bab94-e963-4803-b262-50b925ed7540");
+        this.savedAccountToUpdate.setName("Pinco");
+        this.savedAccountToUpdate.setSurname("Pallino");
+        this.savedAccountToUpdate.setId("7e5b9fc2-f31c-4120-aaf8-c1a208179cdd");
 
-        this.savedAccount3 = new Account("pinco.pallino3@gmail.com",
+
+        this.savedAccountLoginError = new Account("pinco.login.error@gmail.com",
                 LocalDate.of(1970,3,15),
                 Account.GenderEnum.MALE,
                 "dshjdfkdjsf32!");
-        this.savedAccount3.setName("Pinco");
-        this.savedAccount3.setSurname("Pallino");
-        this.savedAccount3.setId("28ac0564-8f56-44d6-ada5-1050753cfbbd");
-
+        this.savedAccountLoginError.setName("Pinco");
+        this.savedAccountLoginError.setSurname("Pallino");
+        this.savedAccountLoginError.setId("5c62d672-cfa5-4ebf-a9c3-1622198c69b");
     }
 
     private String getAccessToken(Account account) throws JsonProcessingException {
@@ -110,11 +109,11 @@ public class AccountsIT {
     }
 
     private void restoreUpdatedAccount(AccountPatch accountPatch) throws JsonProcessingException {
-        this.savedAccount3.setName(accountPatch.getName());
-        this.savedAccount3.setSurname(accountPatch.getSurname());
-        this.savedAccount3.setGender(Account.GenderEnum.valueOf(accountPatch.getGender().toString()));
-        this.savedAccount3.setPassword(accountPatch.getPassword());
-        String accessToken = getAccessToken(this.savedAccount3);
+        this.savedAccountToUpdate.setName(accountPatch.getName());
+        this.savedAccountToUpdate.setSurname(accountPatch.getSurname());
+        this.savedAccountToUpdate.setGender(Account.GenderEnum.valueOf(accountPatch.getGender().toString()));
+        this.savedAccountToUpdate.setPassword(accountPatch.getPassword());
+        String accessToken = getAccessToken(this.savedAccountToUpdate);
 
         HttpHeaders updateHeaders = new HttpHeaders();
         updateHeaders.setBearerAuth(accessToken);
@@ -131,7 +130,7 @@ public class AccountsIT {
                 HttpMethod.PATCH,
                 request,
                 Account.class,
-                this.savedAccount3.getId());
+                this.savedAccountToUpdate.getId());
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -144,11 +143,24 @@ public class AccountsIT {
         // visualizzo il profilo salvato
         log.info(updatedAccount.toString());
 
-        this.savedAccount3.setName(accountToUpdate.getName());
-        this.savedAccount3.setSurname(accountToUpdate.getSurname());
-        this.savedAccount3.setGender(Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()));
-        this.savedAccount3.setPassword(accountToUpdate.getPassword());
+        this.savedAccountToUpdate.setName(accountToUpdate.getName());
+        this.savedAccountToUpdate.setSurname(accountToUpdate.getSurname());
+        this.savedAccountToUpdate.setGender(Account.GenderEnum.valueOf(accountToUpdate.getGender().toString()));
+        this.savedAccountToUpdate.setPassword(accountToUpdate.getPassword());
 
+    }
+
+    private void deletedUser(Account account) {
+        UserResource userResource = this.keycloak.realm("social-accounts")
+                .users()
+                .get(account.getId());
+        UserRepresentation userRepresentation = userResource
+                .toRepresentation();
+
+        userRepresentation.setEnabled(false);
+        userRepresentation.setEmailVerified(false);
+        userResource
+                .update(userRepresentation);
     }
 
     private void restoreDeletedUser(Account account) {
@@ -159,7 +171,31 @@ public class AccountsIT {
                 .toRepresentation();
 
         userRepresentation.setEnabled(true);
+        userRepresentation.setEmailVerified(true);
+        userResource
+                .update(userRepresentation);
+    }
 
+    private void invalidateEmail(Account account) {
+        UserResource userResource = this.keycloak.realm("social-accounts")
+                .users()
+                .get(account.getId());
+        UserRepresentation userRepresentation = userResource
+                .toRepresentation();
+
+        userRepresentation.setEmailVerified(false);
+        userResource
+                .update(userRepresentation);
+    }
+
+    private void validateEmail(Account account) {
+        UserResource userResource = this.keycloak.realm("social-accounts")
+                .users()
+                .get(account.getId());
+        UserRepresentation userRepresentation = userResource
+                .toRepresentation();
+
+        userRepresentation.setEmailVerified(true);
         userResource
                 .update(userRepresentation);
     }
@@ -365,9 +401,9 @@ public class AccountsIT {
 
     @Test
     void testAddAccount_AlreadyCreated_Then_409() throws Exception {
-        String error = "Conflict! Account with email "+this.savedAccount1.getEmail()+" already created!";
-        this.savedAccount1.setId(null);
-        HttpEntity<Account> request = new HttpEntity<>(this.savedAccount1);
+        String error = "Conflict! Account with email "+this.savedAccountToDelete.getEmail()+" already created!";
+        this.savedAccountToDelete.setId(null);
+        HttpEntity<Account> request = new HttpEntity<>(this.savedAccountToDelete);
         ResponseEntity<String> response = this.testRestTemplate.exchange(this.baseUrl,
                 HttpMethod.POST,
                 request,
@@ -386,7 +422,7 @@ public class AccountsIT {
     @Test
     void
     testDeleteAccountById_Then_204() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount1);
+        String accessToken = getAccessToken(this.savedAccountToDelete);
 
         HttpHeaders deleteHeaders = new HttpHeaders();
         deleteHeaders.setBearerAuth(accessToken);
@@ -396,10 +432,10 @@ public class AccountsIT {
                 HttpMethod.DELETE,
                 new HttpEntity<>(deleteHeaders),
                 Void.class,
-                this.savedAccount1.getId());
+                this.savedAccountToDelete.getId());
         assertEquals(HttpStatus.NO_CONTENT, responseDelete.getStatusCode());
 
-        restoreDeletedUser(this.savedAccount1);
+        restoreDeletedUser(this.savedAccountToDelete);
     }
 
 
@@ -408,19 +444,19 @@ public class AccountsIT {
 
 
     @Test
-    void testDeleteAccountById_Then_401() throws Exception{
+    void testDeleteAccountById_Then_401(){
         ResponseEntity<String> responseDelete = this.testRestTemplate.exchange(
                 this.baseUrl+"/{accountId}",
                 HttpMethod.DELETE,
                 HttpEntity.EMPTY,
                 String.class,
-                this.savedAccount2.getId());
+                this.savedAccountLoginError.getId());
         assertEquals(HttpStatus.UNAUTHORIZED, responseDelete.getStatusCode());
 
     }
     @Test
     void testDeleteAccountById_Then_403() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount1);
+        String accessToken = getAccessToken(this.savedAccountToDelete);
 
         HttpHeaders deleteHeaders = new HttpHeaders();
         deleteHeaders.setBearerAuth(accessToken);
@@ -429,11 +465,53 @@ public class AccountsIT {
                 HttpMethod.DELETE,
                 new HttpEntity<>(deleteHeaders),
                 String.class,
-                this.savedAccount2.getId());
+                this.savedAccountLoginError.getId());
         JsonNode node = this.objectMapper.readTree(responseDelete.getBody());
         assertEquals(HttpStatus.FORBIDDEN, responseDelete.getStatusCode());
-        assertEquals("Forbidden: Account with id "+this.savedAccount1.getId()+" can not perform this action", node.get("error").asText());
+        assertEquals("Forbidden: Account with id "+this.savedAccountToDelete.getId()+" can not perform this action", node.get("error").asText());
         log.info("Error --> "+node.get("error").asText());
+    }
+
+    @Test
+    void testDeleteAccountById_EmailNotValidated_Then_403() throws Exception{
+        invalidateEmail(this.savedAccountToDelete);
+        String accessToken = getAccessToken(this.savedAccountToDelete);
+
+        HttpHeaders deleteHeaders = new HttpHeaders();
+        deleteHeaders.setBearerAuth(accessToken);
+        ResponseEntity<String> responseDelete = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.DELETE,
+                new HttpEntity<>(deleteHeaders),
+                String.class,
+                this.savedAccountToDelete.getId());
+        JsonNode node = this.objectMapper.readTree(responseDelete.getBody());
+        assertEquals(HttpStatus.FORBIDDEN, responseDelete.getStatusCode());
+        assertEquals("Account's email with id "+this.savedAccountToDelete.getId()+" is not validated", node.get("error").asText());
+        log.info("Error --> "+node.get("error").asText());
+
+        validateEmail(this.savedAccountToDelete);
+    }
+
+    @Test
+    void testDeleteAccountById_Then_404() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountToDelete);
+        deletedUser(this.savedAccountToDelete);
+
+        HttpHeaders deleteHeaders = new HttpHeaders();
+        deleteHeaders.setBearerAuth(accessToken);
+        ResponseEntity<String> responseDelete = this.testRestTemplate.exchange(
+                this.baseUrl+"/{accountId}",
+                HttpMethod.DELETE,
+                new HttpEntity<>(deleteHeaders),
+                String.class,
+                this.savedAccountToDelete.getId());
+        JsonNode node = this.objectMapper.readTree(responseDelete.getBody());
+        assertEquals(HttpStatus.NOT_FOUND, responseDelete.getStatusCode());
+        assertEquals("Account with id "+this.savedAccountToDelete.getId()+" not found!", node.get("error").asText());
+        log.info("Error --> "+node.get("error").asText());
+
+        restoreDeletedUser(this.savedAccountToDelete);
     }
 
 
@@ -442,7 +520,7 @@ public class AccountsIT {
 
     @Test
     void testUpdateAccountBy_Then_200() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount3);
+        String accessToken = getAccessToken(this.savedAccountToUpdate);
         
         HttpHeaders updateHeaders = new HttpHeaders();
         updateHeaders.setBearerAuth(accessToken);
@@ -459,7 +537,7 @@ public class AccountsIT {
                 HttpMethod.PATCH,
                 request,
                 Account.class,
-                this.savedAccount3.getId());
+                this.savedAccountToUpdate.getId());
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -478,7 +556,7 @@ public class AccountsIT {
     // Update Account Failed
     @Test
     void testUpdateAccountById_Invalid_NameSurnamePassword_Then_400() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount3);
+        String accessToken = getAccessToken(this.savedAccountToUpdate);
 
         HttpHeaders updateHeaders = new HttpHeaders();
         updateHeaders.setBearerAuth(accessToken);
@@ -503,7 +581,7 @@ public class AccountsIT {
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                this.savedAccount3.getId());
+                this.savedAccountToUpdate.getId());
 
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -517,7 +595,7 @@ public class AccountsIT {
 
     @Test
     void testUpdateAccountById_Invalid_Gender_Then_400() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount3);
+        String accessToken = getAccessToken(this.savedAccountToUpdate);
 
         HttpHeaders updateHeaders = new HttpHeaders();
         updateHeaders.setBearerAuth(accessToken);
@@ -535,7 +613,7 @@ public class AccountsIT {
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                this.savedAccount3.getId());
+                this.savedAccountToUpdate.getId());
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Message is not readable", node.get("error").asText());
@@ -544,7 +622,7 @@ public class AccountsIT {
 
     @Test
     void testUpdateAccountById_FieldsSizeError_Then_400() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount3);
+        String accessToken = getAccessToken(this.savedAccountToUpdate);
 
         HttpHeaders updateHeaders = new HttpHeaders();
         updateHeaders.setBearerAuth(accessToken);
@@ -568,7 +646,7 @@ public class AccountsIT {
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                this.savedAccount3.getId());
+                this.savedAccountToUpdate.getId());
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(errors.size() ,node.get("error").size());
@@ -588,14 +666,14 @@ public class AccountsIT {
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                this.savedAccount2.getId());
+                this.savedAccountLoginError.getId());
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
     void testUpdateAccountById_Then_403() throws Exception{
-        String accessToken = getAccessToken(this.savedAccount3);
+        String accessToken = getAccessToken(this.savedAccountToUpdate);
 
         HttpHeaders updateHeaders = new HttpHeaders();
         updateHeaders.setBearerAuth(accessToken);
@@ -608,15 +686,63 @@ public class AccountsIT {
                 HttpMethod.PATCH,
                 request,
                 String.class,
-                this.savedAccount2.getId());
+                this.savedAccountLoginError.getId());
 
         JsonNode node = this.objectMapper.readTree(response.getBody());
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        assertEquals("Forbidden: Account with id "+this.savedAccount3.getId()+" can not perform this action", node.get("error").asText());
+        assertEquals("Forbidden: Account with id "+this.savedAccountToUpdate.getId()+" can not perform this action", node.get("error").asText());
         log.info("Error --> " + node.get("error").asText());
     }
 
+    @Test
+    void testUpdateAccountById_EmailNotValidated_Then_403() throws Exception{
+        invalidateEmail(this.savedAccountToUpdate);
+        String accessToken = getAccessToken(this.savedAccountToUpdate);
 
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+
+        AccountPatch accountPatchToUpdate = new AccountPatch();
+
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate, updateHeaders);
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl + "/{accountId}",
+                HttpMethod.PATCH,
+                request,
+                String.class,
+                this.savedAccountToUpdate.getId());
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("Account's email with id "+this.savedAccountToUpdate.getId()+" is not validated", node.get("error").asText());
+        log.info("Error --> "+node.get("error").asText());
+        validateEmail(this.savedAccountToUpdate);
+    }
+
+
+    @Test
+    void testUpdateAccountById_Then_404() throws Exception{
+        String accessToken = getAccessToken(this.savedAccountToUpdate);
+        deletedUser(this.savedAccountToUpdate);
+        HttpHeaders updateHeaders = new HttpHeaders();
+        updateHeaders.setBearerAuth(accessToken);
+
+        AccountPatch accountPatchToUpdate = new AccountPatch();
+
+        HttpEntity<AccountPatch> request = new HttpEntity<>(accountPatchToUpdate, updateHeaders);
+        ResponseEntity<String> response = this.testRestTemplate.exchange(
+                this.baseUrl + "/{accountId}",
+                HttpMethod.PATCH,
+                request,
+                String.class,
+                this.savedAccountToUpdate.getId());
+
+        JsonNode node = this.objectMapper.readTree(response.getBody());
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("Account with id "+this.savedAccountToUpdate.getId()+" not found!", node.get("error").asText());
+        log.info("Error --> "+node.get("error").asText());
+        restoreDeletedUser(this.savedAccountToUpdate);
+    }
 
 
 /*

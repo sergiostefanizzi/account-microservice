@@ -186,24 +186,6 @@ class AccountsControllerTest {
 
 
     @Test
-    void testAddAccount_AlreadyCreated_Then_409() throws Exception{
-        String newAccountJson = this.objectMapper.writeValueAsString(this.newAccount);
-
-        when(this.accountsService.save(any(Account.class))).thenThrow(new AccountAlreadyCreatedException(this.newAccount.getEmail()));
-
-        MvcResult result = this.mockMvc.perform(post("/accounts")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(newAccountJson)
-                .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("Conflict! Account with email "+this.newAccount.getEmail()+" already created!"))
-                .andReturn();
-
-        String resultAsString = result.getResponse().getContentAsString();
-        log.info("Errors\n"+resultAsString);
-    }
-
-    @Test
     void testAddAccount_MissingRequiredFields_Then_400() throws Exception {
         List<String> errors = asList(
                 "email must not be null",
@@ -354,6 +336,24 @@ class AccountsControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(res -> assertTrue(res.getResolvedException() instanceof HttpMessageNotReadableException))
                 .andExpect(jsonPath("$.error").value("Message is not readable"))
+                .andReturn();
+
+        String resultAsString = result.getResponse().getContentAsString();
+        log.info("Errors\n"+resultAsString);
+    }
+
+    @Test
+    void testAddAccount_AlreadyCreated_Then_409() throws Exception{
+        String newAccountJson = this.objectMapper.writeValueAsString(this.newAccount);
+
+        when(this.accountsService.save(any(Account.class))).thenThrow(new AccountAlreadyCreatedException(this.newAccount.getEmail()));
+
+        MvcResult result = this.mockMvc.perform(post("/accounts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(newAccountJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Conflict! Account with email "+this.newAccount.getEmail()+" already created!"))
                 .andReturn();
 
         String resultAsString = result.getResponse().getContentAsString();

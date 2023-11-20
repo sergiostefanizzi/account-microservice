@@ -77,8 +77,7 @@ public class KeycloakService {
         UserRepresentation user = userResource.toRepresentation();
 
         user.setEnabled(false);
-        // TODO uncomment
-        //user.setEmailVerified(false);
+        user.setEmailVerified(false);
 
         userResource.update(user);
     }
@@ -175,8 +174,7 @@ public class KeycloakService {
             return Optional.empty();
         }
         user.setEnabled(false);
-        // TODO uncomment
-        //user.setEmailVerified(false);
+        user.setEmailVerified(false);
 
         userResource
                 .update(user);

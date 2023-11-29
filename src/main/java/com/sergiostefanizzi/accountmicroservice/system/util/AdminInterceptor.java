@@ -7,6 +7,7 @@ import com.sergiostefanizzi.accountmicroservice.system.exceptions.ActionForbidde
 import com.sergiostefanizzi.accountmicroservice.system.exceptions.EmailNotValidatedException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -21,9 +22,9 @@ import java.util.Map;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AdminInterceptor implements HandlerInterceptor {
-    @Autowired
-    private KeycloakService keycloakService;
+    private final KeycloakService keycloakService;
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         log.info("\n\tAccount Interceptor -> "+request.getRequestURI());
@@ -34,21 +35,20 @@ public class AdminInterceptor implements HandlerInterceptor {
         String accountId = (String) pathVariables.get("accountId");
         log.info("\n\tAccount Admin Interceptor: Account ID-> "+accountId);
 
-        String tokenAccountId = getJwtAccountId();
+        String tokenAccountId = JwtUtilityClass.getJwtAccountId();
         // l'admin non puo' assegnarsi nuovamente il ruolo di admin e non si puo' eliminare da solo
         // l'admin deve avere l'email validata
         if (accountId.equals(tokenAccountId)){
             throw new ActionForbiddenException(tokenAccountId);
         }
 
-        if(!keycloakService.checkActiveById(accountId)){
+        if(Boolean.FALSE.equals(keycloakService.checkActiveById(accountId))){
             throw new AccountNotFoundException(accountId);
         }
 
-        if(request.getMethod().equalsIgnoreCase("PUT")){
-            if(!keycloakService.checksEmailValidated(accountId)){
+        if(request.getMethod().equalsIgnoreCase("PUT") && (Boolean.FALSE.equals(keycloakService.checksEmailValidated(accountId)))){
                 throw new EmailNotValidatedException(accountId);
-            }
+
         }
 
 
@@ -65,11 +65,4 @@ public class AdminInterceptor implements HandlerInterceptor {
         HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
     }
 
-    private static String getJwtAccountId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        JwtAuthenticationToken oauthToken = (JwtAuthenticationToken) authentication;
-        String jwtAccountId = oauthToken.getToken().getClaim("sub");
-        log.info("TOKEN ACCOUNT ID --> "+jwtAccountId);
-        return jwtAccountId;
-    }
 }

@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.sergiostefanizzi</groupId>
 	<artifactId>account-microservice</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>account-microservice</name>
 	<description>Account Microservice </description>
 	<properties>
